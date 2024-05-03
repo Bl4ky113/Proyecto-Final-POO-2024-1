@@ -209,18 +209,18 @@ class DBHandler ():
     def create_tables (self):
         self.cursor = self.cursor.executescript('''
             CREATE TABLE IF NOT EXISTS Carreras (
-                Id_Carrera VARCHAR(16) NOT NULL,
+                Código_Carrera VARCHAR(16) NOT NULL,
                 Descripción VARCHAR(128) NOT NULL,
-                Semestres SMALLINT(2) NOT NULL,
+                Num_Semestres SMALLINT(2) NOT NULL,
 
-                PRIMARY KEY (Id_Carrera)
+                PRIMARY KEY (Código_Carrera)
             );
             CREATE TABLE IF NOT EXISTS Alumnos (
                 Id_Alumno VARCHAR(32) NOT NULL,
                 Id_Carrera VARCHAR(16) NOT NULL,
                 Nombres VARCHAR(64),
                 Apellidos VARCHAR(64),
-                Ingreso date NOT NULL,
+                Fecha_Ingreso DATE NOT NULL,
                 Ciudad VARCHAR(64),
                 Departamento VARCHAR(64),
                 Dirección VARCHAR(64),
@@ -228,28 +228,26 @@ class DBHandler ():
                 Telef_Fijo VARCHAR(16),
 
                 PRIMARY KEY (Id_Alumno),
-                FOREIGN KEY (Id_Carrera) REFERENCES Carreras(Id_Carrera)
+                FOREIGN KEY (Id_Carrera) REFERENCES Carreras(Código_Carrera)
             );
             CREATE TABLE IF NOT EXISTS Cursos (
-                Id_Curso VARCHAR(16) NOT NULL,
-                Descripción VARCHAR(128) NOT NULL,
-                Horas SMALLINT(2),
+                Código_Curso VARCHAR(16) NOT NULL,
+                Descripción_Curso VARCHAR(128) NOT NULL,
+                Num_Horas SMALLINT(2) NOT NULL,
 
-                PRIMARY KEY (Id_Curso)
+                PRIMARY KEY (Código_Curso)
             );
             CREATE TABLE IF NOT EXISTS Inscritos (
-                Id_Inscrito VARCHAR(32) NOT NULL,
+                No_Inscripción INTEGER AUTO_INCREMENT,
                 Id_Alumno VARCHAR(32) NOT NULL,
-                Id_Curso VARCHAR(16) NOT NULL,
-                Inscripción date NOT NULL,
+                Código_Curso VARCHAR(16) NOT NULL,
+                Fecha_Inscripción DATE NOT NULL,
 
-                PRIMARY KEY (Id_Inscrito),
+                PRIMARY KEY (No_Inscripción),
                 FOREIGN KEY (Id_Alumno) REFERENCES Alumnos(Id_Alumno),
-                FOREIGN KEY (Id_Curso) REFERENCES Carreras(Id_Curso)
+                FOREIGN KEY (Código_Curso) REFERENCES Cursos(Código_Curso)
             );
         ''')
-        pass
-
 
 if __name__ == "__main__":
     db = DBHandler()
