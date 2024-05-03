@@ -4,7 +4,7 @@ import tkinter as tk
 import tkinter.ttk as ttk
 
 import sqlite3
-
+import os
 
 class Inscripciones_2:
     def __init__(self, master=None):
@@ -16,7 +16,17 @@ class Inscripciones_2:
             height=600,
             width=800
         )
-        self.win.geometry("800x600")
+        '''
+        con abspath() se calcula la ruta absoluta del archivo
+        con dirname() se obtiene la ruta del directorio inscripciones
+        con join() une los parametros como una ruta
+        '''
+        file_path = os.path.dirname(os.path.abspath(__file__))
+        imagen_path = os.path.join(file_path,'img','icono.png')
+        self.win.iconphoto(True,tk.PhotoImage(file=imagen_path))
+
+        self.win.geometry(self.centrarVentana(800,600))
+        
         self.win.resizable(False, False)
         self.win.title("Inscripciones de Materias y Cursos")
 
@@ -171,9 +181,18 @@ class Inscripciones_2:
 
         # Main widget
         self.mainwindow = self.win
-
+ 
     def run(self):
         self.mainwindow.mainloop()
+
+
+
+    def centrarVentana(self,w_ventana,h_ventana):
+        x_ventana = self.win.winfo_screenwidth() // 2 - w_ventana // 2
+        y_ventana = self.win.winfo_screenheight() // 2 - h_ventana // 2
+        centrado=str(w_ventana) + "x" + str(h_ventana) + "+" + str(x_ventana) + "+" + str(y_ventana)
+
+        return centrado
 
     ''' A partir de este punto se deben incluir las funciones
      para el manejo de la base de datos 
