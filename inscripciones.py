@@ -185,15 +185,12 @@ class Inscripciones_2:
     def run(self):
         self.mainwindow.mainloop()
 
-
-
     def centrarVentana(self,w_ventana,h_ventana):
         x_ventana = self.win.winfo_screenwidth() // 2 - w_ventana // 2
         y_ventana = self.win.winfo_screenheight() // 2 - h_ventana // 2
         centrado=str(w_ventana) + "x" + str(h_ventana) + "+" + str(x_ventana) + "+" + str(y_ventana)
 
         return centrado
-
     ''' A partir de este punto se deben incluir las funciones
      para el manejo de la base de datos 
 
