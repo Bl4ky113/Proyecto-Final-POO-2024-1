@@ -1,10 +1,13 @@
 # !/usr/bin/python3
 
+import sqlite3
+import logging
+import os
+
 import tkinter as tk
 import tkinter.ttk as ttk
 
-import sqlite3
-import os
+logger = logging.getLogger(__name__)
 
 class Inscripciones_2:
     def __init__(self, master=None):
@@ -207,6 +210,8 @@ class DBHandler ():
         self.create_tables()
 
     def create_tables (self):
+        seed_done = False
+
         self.cursor = self.cursor.executescript('''
             CREATE TABLE IF NOT EXISTS Carreras (
                 Código_Carrera VARCHAR(16) NOT NULL,
@@ -232,7 +237,8 @@ class DBHandler ():
             );
             CREATE TABLE IF NOT EXISTS Cursos (
                 Código_Curso VARCHAR(16) NOT NULL,
-                Descripción_Curso VARCHAR(128) NOT NULL,
+                Nombre_Curso VARCHAR(32) NOT NULL,
+                Descripción_Curso VARCHAR(128),
                 Num_Horas SMALLINT(2) NOT NULL,
 
                 PRIMARY KEY (Código_Curso)
@@ -248,6 +254,71 @@ class DBHandler ():
                 FOREIGN KEY (Código_Curso) REFERENCES Cursos(Código_Curso)
             );
         ''')
+
+        self.cursor.execute('SELECT COUNT(*) FROM Carreras;')
+        
+        if self.cursor.fetchone()[0] <= 0:
+            logger.log(100, "SEEDING DATA TO DB AT: Carreras")
+            self.cursor.execute('''
+                INSERT INTO Carreras
+                    (Código_Carrera, Descripción, Num_Semestres)
+                VALUES
+                    ("2933", "Ciencias de la Computación", 9),
+                    ("2514", "Estadística", 9),
+                    ("2518", "Matemáticas", 9),
+                    ("2519", "Química", 10),
+                    ("2516", "Física", 10),
+                    ("2879", "Ingeniería de Sistemas y Computación", 10),
+                    ("2544", "Ingeniería Eléctrica", 10),
+                    ("2545", "Ingeniería Electrónica", 10),
+                    ("2546", "Ingeniería Industrial", 10),
+                    ("2547", "Ingeniería Mecánica", 10);
+            ''')
+
+            seed_done = True
+
+        self.cursor.execute('SELECT COUNT(*) FROM Cursos')
+
+        if self.cursor.fetchone()[0] <= 0:
+            logger.log(100, "SEEDING DATA TO DB AT: Cursos")
+            self.cursor.execute('''
+                INSERT INTO Cursos
+                    (Código_Curso, Nombre_Curso, Num_Horas)
+                VALUES
+                    ("2015168", "Fundamentos de Matemáticas", 72),
+                    ("2015181", "Sistemas Númericos", 72),
+                    ("2016377", "Cálculo Diferencial en una Variable", 72),
+                    ("2015556", "Cálculo Integral en una Variable", 72),
+                    ("2015162", "Cálculo Vectorial", 72),
+                    ("2015555", "Álgebra Lineal Básica", 72),
+                    ("2026573", "Introducción a las Ciencias de la Computación y a la Programación", 56),
+                    ("2016375", "Programación Orientada a Objetos", 56),
+                    ("2016699", "Estructuras de Datos", 56),
+                    ("2016696", "Álgoritmos", 56),
+                    ("2016698", "Elementos de Computadores", 56),
+                    ("2016707", "Sistemas Operativos", 56);
+            ''')
+
+            seed_done = True
+
+        self.cursor.execute('SELECT COUNT(*) FROM Alumnos')
+
+        if self.cursor.fetchone()[0] <= 0:
+            logger.log(100, "SEEDING DATA TO DB AT: Alumnos")
+            self.cursor.execute('''
+                INSERT INTO Alumnos
+                    (Id_Alumno, Id_Carrera, Nombres, Apellidos, Fecha_Ingreso, Ciudad, Telef_Cel)
+                VALUES
+                    ("7856019526884687", "2933", "Martín", "Hernández", "2023-08-01", "Bogota", "1234567890"),
+                    ("5399046924785948", "2518", "Friend", "Fellow", "2024-01-01", "Bogotá", "5432109876"),
+                    ("1722202291005220", "2879", "TEST", "Subject", "2024-05-05", "Nowhere", "0000000000"),
+                    ("4274203119662378", "2545", "ANOTHER", "TEST", "2024-03-03", "Somewhere", "1111111111");
+            ''')
+
+            seed_done = True
+
+        if seed_done:
+            self.connection.commit()
 
 if __name__ == "__main__":
     db = DBHandler()
