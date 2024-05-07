@@ -12,12 +12,13 @@ logger = logging.getLogger(__name__)
 class Inscripciones_2:
     # db variables
     db_path = "Inscripciones.db"
-
     connection: sqlite3.Connection
     cursor: sqlite3.Cursor
 
     def __init__(self, master=None):
         self.config_db()
+
+        print(self.get_career_by_id("2933"))
 
         # Ventana principal
         self.win = tk.Tk(master)
@@ -320,6 +321,63 @@ class Inscripciones_2:
 
         if seed_done:
             self.connection.commit()
+        
+        self.cursor.close()
+
+    def __get_element_by_id (self, element_table: str, element_id, id_config: dict) -> tuple():
+        self.cursor = self.connection.cursor()
+
+        if id_config["min"] > len(element_id) and len(element_id) > id_config["max"]:
+            raise sqlite3.OperationalError('ID LENGHT INCORRECT')
+        
+        self.cursor.execute(f'SELECT * FROM {element_table} WHERE {id_config["label"]}={element_id}')
+        element = self.cursor.fetchone()
+
+        self.cursor.close()
+
+        return element
+
+    def get_career_by_id (self, career_id: str) -> tuple([str, str, int]):
+        career = self.__get_element_by_id(
+            'Carreras',
+            career_id,
+            {
+                "min": 4,
+                "max": 16,
+                "label": "Código_Carrera"
+            }
+        )
+
+        if not career:
+            raise sqlite3.DataError(f'CAREER WITH ID: {career_id} NOT FOUND')
+
+        return career
+
+    def get_careers (self, filter: dict) -> list(tuple([str, str, int])):
+        self.cursor = self.connection.cursor()
+        num_of_filters = len(filter.keys())
+        filter_str = ' WHERE '
+        
+        if 'description' in filter.keys():
+            filter_str += 'Descripción="' + str(filter['description']) + '"'
+
+            if num_of_filters > 1:
+                filter_str += ' AND '
+                num_of_filters -= 1
+        
+        if 'semesters' in filter.keys():
+            filter_str += 'Num_Semestres=' + str(filter['semesters'])
+
+            if num_of_filters > 1:
+                filter_str += ' AND '
+                num_of_filters -= 1
+
+        logger.info("FETCHING CAREERS WITH QUERY: " + filter_str)
+        
+        self.cursor.execute('SELECT * FROM Carreras' + (filter_str if filter_str != ' WHERE ' else ''))
+        careers = self.cursor.fetchall()
+
+        return careers
 
 if __name__ == "__main__":
     app = Inscripciones_2()
