@@ -10,15 +10,23 @@ import tkinter.ttk as ttk
 logger = logging.getLogger(__name__)
 
 class Inscripciones_2:
+    # db variables
+    db_path = "Inscripciones.db"
+
+    connection: sqlite3.Connection
+    cursor: sqlite3.Cursor
+
     def __init__(self, master=None):
+        self.config_db()
+
         # Ventana principal
-        self.db_name = 'Inscripciones.db'    
         self.win = tk.Tk(master)
         self.win.configure(
             background="#f7f9fd",
             height=600,
             width=800
         )
+
         '''
         con abspath() se calcula la ruta absoluta del archivo
         con dirname() se obtiene la ruta del directorio inscripciones
@@ -194,20 +202,13 @@ class Inscripciones_2:
         centrado=str(w_ventana) + "x" + str(h_ventana) + "+" + str(x_ventana) + "+" + str(y_ventana)
 
         return centrado
-    ''' A partir de este punto se deben incluir las funciones
-     para el manejo de la base de datos 
 
-    - Un viejo Krakeko
-     '''
-
-class DBHandler ():
-    connection: sqlite3.Connection
-
-    def __init__ (self, database_name='Inscripciones.db'):
-        self.connection = sqlite3.connect(database_name)
+    def config_db (self):
+        self.connection = sqlite3.connect(self.db_path)
         self.cursor = self.connection.cursor()
 
         self.create_tables()
+        return
 
     def create_tables (self):
         seed_done = False
@@ -321,6 +322,5 @@ class DBHandler ():
             self.connection.commit()
 
 if __name__ == "__main__":
-    db = DBHandler()
     app = Inscripciones_2()
     app.run()
