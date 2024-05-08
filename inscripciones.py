@@ -25,7 +25,6 @@ class Inscripciones_2:
 
     def __init__(self, master=None):
         self.config_db()
-
         # Ventana principal
         self.win = tk.Tk(master)
         self.win.configure(
@@ -93,16 +92,17 @@ class Inscripciones_2:
         self.lblIdAlumno.place(anchor="nw", x=20, y=80)
 
         #Combobox Alumno
-        self.cmbx_Id_Alumno = ttk.Combobox(self.frm_1, name="cmbx_id_alumno")
+        self.cmbx_Id_Alumno = ttk.Combobox(self.frm_1, name="cmbx_id_alumno", values=self.idcbox(),state="readonly")
         self.cmbx_Id_Alumno.place(anchor="nw", width=112, x=100, y=80)
-
+        self.cmbx_Id_Alumno.bind("<<ComboboxSelected>>", self.autocompletar )
         #Label Alumno
         self.lblNombres = ttk.Label(self.frm_1, name="lblnombres")
         self.lblNombres.configure(text='Nombre(s):')
         self.lblNombres.place(anchor="nw", x=20, y=130)
 
         #Entry Alumno
-        self.nombres = ttk.Entry(self.frm_1, name="nombres")
+        self.nombre_Alumno= tk.StringVar()
+        self.nombres = ttk.Entry(self.frm_1, name="nombres",textvariable=self.nombre_Alumno)
         self.nombres.place(anchor="nw", width=200, x=100, y=130)
 
         #Label Apellidos
@@ -111,7 +111,8 @@ class Inscripciones_2:
         self.lblApellidos.place(anchor="nw", x=400, y=130)
 
         #Entry Apellidos
-        self.apellidos = ttk.Entry(self.frm_1, name="apellidos")
+        self.apellido_Alumno = tk.StringVar()
+        self.apellidos = ttk.Entry(self.frm_1, name="apellidos", textvariable=self.apellido_Alumno)
         self.apellidos.place(anchor="nw", width=200, x=485, y=130)
 
         #Label Curso
@@ -319,8 +320,8 @@ class Inscripciones_2:
                 VALUES
                     ("7856019526884687", "2933", "Martín", "Hernández", "2023-08-01", "Bogota", "1234567890"),
                     ("5399046924785948", "2518", "Friend", "Fellow", "2024-01-01", "Bogotá", "5432109876"),
-                    ("1722202291005220", "2879", "TEST", "Subject", "2024-05-05", "Nowhere", "0000000000"),
-                    ("4274203119662378", "2545", "ANOTHER", "TEST", "2024-03-03", "Somewhere", "1111111111");
+                    ("1722202291005220", "2879", "Someone", "Subject", "2024-05-05", "Nowhere", "0000000000"),
+                    ("4274203119662378", "2545", "Laura", "Moreno", "2023-08-01", "Fusagasuga", "1132432433");
             ''')
 
             seed_done = True
@@ -528,6 +529,30 @@ class Inscripciones_2:
 
         return records
 
+
+    ## autocompleta el nombre yy el apellido esta conectado al combobox
+    def autocompletar(self,event):
+        student_id = self.cmbx_Id_Alumno.get()
+
+        datos = self.get_student_by_id(student_id)
+        nombres_Alu= datos[2]
+        apellidos_Alu = datos[3]
+        ##modificamos los entry de nombres y apellidos
+        self.apellido_Alumno.set(apellidos_Alu)
+        self.nombre_Alumno.set(nombres_Alu)
+
+        return 
+        
+
+    def idcbox(self):
+            self.cursor = self.connection.cursor()
+            self.cursor.execute(f"SELECT Id_Alumno FROM Alumnos")
+            elements = self.cursor.fetchall()
+            self.cursor.close()   
+            return elements  
+    
+
 if __name__ == "__main__":
     app = Inscripciones_2()
     app.run()
+    
