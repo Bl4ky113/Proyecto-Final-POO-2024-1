@@ -2,6 +2,7 @@
 
 import sqlite3
 import logging
+import re
 import os
 
 import tkinter as tk
@@ -15,10 +16,15 @@ class Inscripciones_2:
     connection: sqlite3.Connection
     cursor: sqlite3.Cursor
 
+    db_tables = {
+        "careers": "Carreras",
+        "students": "Alumnos",
+        "courses": "Cursos",
+        "records": "Inscritos"
+    }
+
     def __init__(self, master=None):
         self.config_db()
-
-        print(self.get_career_by_id("2933"))
 
         # Ventana principal
         self.win = tk.Tk(master)
@@ -321,25 +327,82 @@ class Inscripciones_2:
 
         if seed_done:
             self.connection.commit()
-        
+
         self.cursor.close()
 
     def __get_element_by_id (self, element_table: str, element_id, id_config: dict) -> tuple():
         self.cursor = self.connection.cursor()
+        element_table_str = self.db_tables[element_table]
+
+        if element_table not in self.db_tables.keys():
+            raise sqlite3.DataError(f"ELEMENT TABLE: {element_table} NOT AVAILABLE")
 
         if id_config["min"] > len(element_id) and len(element_id) > id_config["max"]:
             raise sqlite3.OperationalError('ID LENGHT INCORRECT')
         
-        self.cursor.execute(f'SELECT * FROM {element_table} WHERE {id_config["label"]}={element_id}')
+        self.cursor.execute(f"SELECT * FROM {element_table_str} WHERE {id_config['label']}={element_id}")
         element = self.cursor.fetchone()
 
         self.cursor.close()
 
+        logger.log(100, f"FETCHED '{element_table_str}' ELEMENT WITH ID '{element_id}'")
+
         return element
+
+    def __get_all_elements (self, element_table: str) -> list(tuple()):
+        self.cursor = self.connection.cursor()
+        element_table_str = self.db_tables[element_table]
+
+        if element_table not in self.db_tables.keys():
+            raise sqlite3.DataError(f"ELEMENT TABLE: {element_table} IS NOT A VALID TABLE")
+
+        self.cursor.execute(f"SELECT * FROM {element_table_str}")
+        elements = self.cursor.fetchall()
+
+        self.cursor.close()
+
+        logger.log(100, f"FETCHED ALL '{element_table_str}' ELEMENTS")
+
+        return elements
+
+    def __get_elements_with_query (self, element_table, **filters) -> list(tuple()):
+        self.cursor = self.connection.cursor()
+        element_table_str = self.db_tables[element_table]
+        query_str = ''
+
+        if len(filters.keys()) <= 0:
+            raise sqlite3.OperationalError('NO FILTERS AVAILABLE')
+
+        self.cursor.execute(f"SELECT name FROM pragma_table_info(\"{element_table_str}\") AS table_info")
+        table_columns = [column_tuple[0] for column_tuple in self.cursor.fetchall()]
+        
+        for i, filter_key in enumerate(filters.keys()):
+            if (filter_key not in table_columns):
+                logger.warning(f"FILTER '{filter_key}' NOT IN {element_table_str} SCHEMA")
+                continue
+
+            if i != 0:
+                query_str += " AND "
+
+            filter_value = filters[filter_key]
+            
+            query_str += f"\"{filter_key}\"=\"{filter_value}\""
+
+        if not query_str:
+            raise sqlite3.OperationalError('NO VALID FILTERS PASSED IN QUERY')
+
+        self.cursor.execute(f"SELECT * FROM {element_table_str} WHERE {query_str}")
+        elements = self.cursor.fetchall()
+
+        self.cursor.close()
+
+        logger.log(100, f"FETCHED '{element_table_str}' ELEMENT USING '{query_str}' QUERY")
+        
+        return elements
 
     def get_career_by_id (self, career_id: str) -> tuple([str, str, int]):
         career = self.__get_element_by_id(
-            'Carreras',
+            'careers',
             career_id,
             {
                 "min": 4,
@@ -349,35 +412,121 @@ class Inscripciones_2:
         )
 
         if not career:
-            raise sqlite3.DataError(f'CAREER WITH ID: {career_id} NOT FOUND')
+            raise sqlite3.DataError(f"CAREER WITH ID: {career_id} NOT FOUND")
 
         return career
+                       
+    def get_careers (self, filters: dict={}) -> list(tuple([str, str, int])):
+        if (len(filters.keys()) == 0):
+            careers = self.__get_all_elements('careers')
 
-    def get_careers (self, filter: dict) -> list(tuple([str, str, int])):
-        self.cursor = self.connection.cursor()
-        num_of_filters = len(filter.keys())
-        filter_str = ' WHERE '
+            if len(careers) <= 0:
+                raise sqlite3.DataError('NO CAREERS AVAILABLE')
+
+            return careers
         
-        if 'description' in filter.keys():
-            filter_str += 'Descripción="' + str(filter['description']) + '"'
+        careers = self.__get_elements_with_query('careers', **filters)
 
-            if num_of_filters > 1:
-                filter_str += ' AND '
-                num_of_filters -= 1
+        if len(careers) <= 0:
+            raise sqlite3.DataError(f"NO CAREERS AVAILABLE WITH QUERY: {filters}")
         
-        if 'semesters' in filter.keys():
-            filter_str += 'Num_Semestres=' + str(filter['semesters'])
-
-            if num_of_filters > 1:
-                filter_str += ' AND '
-                num_of_filters -= 1
-
-        logger.info("FETCHING CAREERS WITH QUERY: " + filter_str)
-        
-        self.cursor.execute('SELECT * FROM Carreras' + (filter_str if filter_str != ' WHERE ' else ''))
-        careers = self.cursor.fetchall()
-
         return careers
+
+    def get_student_by_id (self, student_id: str) -> tuple([str, str, str, str, str, str, str, str, str, str]):
+        student = self.__get_element_by_id(
+            'students',
+            student_id,
+            {
+                "min": 16,
+                "max": 16,
+                "label": "Id_Alumno"
+            }
+        )
+
+        if not student:
+            raise sqlite3.DataError(f"STUDENT WITH ID: {student_id} NOT FOUND")
+
+        return student
+
+    def get_students (self, filters: dict={}) -> list(tuple([str, str, str, str, str, str, str, str, str, str])):
+        if (len(filters.keys()) == 0):
+            students = self.__get_all_elements('students')
+
+            if len(students) <= 0:
+                raise sqlite3.DataError('NO STUDENTS AVAILABLE')
+
+            return students
+
+        students = self.__get_elements_with_query('students', **filters)
+
+        if len(students) <= 0:
+            raise sqlite3.DataError(f"NO STUDENTS AVAILABLE WITH QUERY: {filters}")
+
+        return students
+
+    def get_course_by_id (self, course_id: str) -> tuple([str, str, str, int]):
+        course = self.__get_element_by_id(
+            'courses',
+            course_id,
+            {
+                "min": 7,
+                "max": 7,
+                "label": "Código_Curso"
+            }
+        )
+
+        if not course:
+            raise sqlite3.DataError(f"COURSE WITH ID: {course_id} NOT FOUND")
+
+        return course
+
+    def get_courses (self, filters: dict={}) -> list(tuple([str, str, str, int])):
+        if (len(filters.keys()) == 0):
+            courses = self.__get_all_elements('courses')
+
+            if len(courses) <= 0:
+                raise sqlite3.DataError('NO COURSES AVAILABLE')
+
+            return courses
+
+        courses = self.__get_elements_with_query('courses', **filters)
+
+        if len(courses) <= 0:
+            raise sqlite3.DataError(f"NO COURSES AVAILABLE WITH QUERY: {filters}")
+
+        return courses
+
+    def get_record_by_id (self, record_id: str) -> tuple([str, str, str, str, str, str, str, str, str, str]):
+        record = self.__get_element_by_id(
+            'records',
+            record_id,
+            {
+                "min": 16,
+                "max": 16,
+                "label": "Id_Alumno"
+            }
+        )
+
+        if not record:
+            raise sqlite3.DataError(f"RECORD WITH ID: {record_id} NOT FOUND")
+
+        return record
+
+    def get_records (self, filters: dict={}) -> list(tuple([str, str, str, str, str, str, str, str, str, str])):
+        if (len(filters.keys()) == 0):
+            records = self.__get_all_elements('records')
+
+            if len(records) <= 0:
+                raise sqlite3.DataError('NO RECORDS AVAILABLE')
+
+            return records
+
+        records = self.__get_elements_with_query('records', **filters)
+
+        if len(records) <= 0:
+            raise sqlite3.DataError(f"NO RECORDS AVAILABLE WITH QUERY: {filters}")
+
+        return records
 
 if __name__ == "__main__":
     app = Inscripciones_2()
