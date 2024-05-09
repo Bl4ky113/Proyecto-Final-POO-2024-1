@@ -72,7 +72,7 @@ class Inscripciones_2:
         )
 
         #Entry No. Inscripción
-        self.num_Inscripcion = ttk.Entry(self.frm_1, name="num_inscripcion")
+        self.num_Inscripcion = ttk.Label(self.frm_1, text= self.numero_de_registro(),  name="num_inscripcion")
         self.num_Inscripcion.configure(justify="right")
         self.num_Inscripcion.place(anchor="nw", width=100, x=682, y=42)
         
@@ -210,6 +210,7 @@ class Inscripciones_2:
         centrado=str(w_ventana) + "x" + str(h_ventana) + "+" + str(x_ventana) + "+" + str(y_ventana)
 
         return centrado
+    
 
     def config_db (self):
         self.connection = sqlite3.connect(self.db_path)
@@ -321,7 +322,8 @@ class Inscripciones_2:
                     ("7856019526884687", "2933", "Martín", "Hernández", "2023-08-01", "Bogota", "1234567890"),
                     ("5399046924785948", "2518", "Friend", "Fellow", "2024-01-01", "Bogotá", "5432109876"),
                     ("1722202291005220", "2879", "Someone", "Subject", "2024-05-05", "Nowhere", "0000000000"),
-                    ("4274203119662378", "2545", "Laura", "Moreno", "2023-08-01", "Fusagasuga", "1132432433");
+                    ("4274203119662378", "2545", "Laura", "Moreno", "2023-08-01", "Fusagasuga", "1132432433"),
+                    ("1827391938728989", "2879", "Nicolas", "Corredor", "2023-08-01", "Bogotá", "1353515989");
             ''')
 
             seed_done = True
@@ -330,6 +332,15 @@ class Inscripciones_2:
             self.connection.commit()
 
         self.cursor.close()
+
+    def numero_de_registro(self):
+        self.cursor = self.connection.cursor()
+        num_alumnos = 'SELECT * FROM Alumnos;'  
+        self.cursor.execute(num_alumnos) 
+        cantidad = len(self.cursor.fetchall())
+        id_registro = cantidad + 1
+        self.cursor.close()
+        return id_registro    
 
     def __get_element_by_id (self, element_table: str, element_id, id_config: dict) -> tuple():
         self.cursor = self.connection.cursor()
@@ -528,6 +539,69 @@ class Inscripciones_2:
             raise sqlite3.DataError(f"NO RECORDS AVAILABLE WITH QUERY: {filters}")
 
         return records
+    
+    def set_all(self, nombres: str, apellidos: str, id: str, fecha: str, ciudad: str, departamento: str, direccion: str, cel: str, fijo: str):
+        self.cursor = self.connection.cursor()
+        all = f"UPDATE Alumnos SET Nombres= '{nombres}', Apellidos='{apellidos}', Fecha_Ingreso='{fecha}',Ciudad='{ciudad}',Departamento='{departamento}', Dirección='{direccion}',  Telef_Cel'={cel}', Telef_Fijo'={fijo}'   WHERE Id_Alumno='{id}'" 
+        self.cursor.execute(all)
+        self.connection.commit()
+        self.cursor.close()
+
+    def set_name(self, id, nombres: str):
+        self.cursor = self.connection.cursor()
+        name = f"UPDATE Alumnos SET Nombres= '{nombres}'WHERE Id_Alumno='{id}'" 
+        self.cursor.execute(name)
+        self.connection.commit()
+        self.cursor.close()
+    
+    def set_lastname(self, id, apellidos: str):
+        self.cursor = self.connection.cursor()
+        lastname = f"UPDATE Alumnos SET Apellidos= '{apellidos}'WHERE Id_Alumno='{id}'" 
+        self.cursor.execute(lastname)
+        self.connection.commit()
+        self.cursor.close()
+    
+    def set_date(self, id, fecha: str):
+        self.cursor = self.connection.cursor()
+        date = f"UPDATE Alumnos SET  Fecha_Ingreso='{fecha}' WHERE Id_Alumno='{id}'" 
+        self.cursor.execute(date)
+        self.connection.commit()
+        self.cursor.close()
+    
+    def set_city(self, id, ciudad: str):
+        self.cursor = self.connection.cursor()
+        city = f"UPDATE Alumnos SET Ciudad='{ciudad}' WHERE Id_Alumno='{id}'" 
+        self.cursor.execute(city)
+        self.connection.commit()
+        self.cursor.close()
+    
+    def set_department(self, id, departamento: str):
+        self.cursor = self.connection.cursor()
+        department = f"UPDATE Alumnos SET Departamento='{departamento}' WHERE Id_Alumno='{id}'" 
+        self.cursor.execute(department)
+        self.connection.commit()
+        self.cursor.close()
+    
+    def set_adress(self, id, direccion: str):
+        self.cursor = self.connection.cursor()
+        adress = f"UPDATE Alumnos SET Dirección='{direccion}' WHERE Id_Alumno='{id}'" 
+        self.cursor.execute(adress)
+        self.connection.commit()
+        self.cursor.close()
+    
+    def set_cel(self, id, cel: str):
+        self.cursor = self.connection.cursor()
+        nokia= f"UPDATE Alumnos SET Telef_Cel='{cel}' WHERE Id_Alumno='{id}'" 
+        self.cursor.execute(nokia)
+        self.connection.commit()
+        self.cursor.close()
+    
+    def set_phone(self, id, fijo: str):
+        self.cursor = self.connection.cursor()
+        phone = f"UPDATE Alumnos SET Telef_Fijo'={fijo}' WHERE Id_Alumno='{id}'" 
+        self.cursor.execute(phone)
+        self.connection.commit()
+        self.cursor.close()
 
 
     ## autocompleta el nombre yy el apellido esta conectado al combobox
