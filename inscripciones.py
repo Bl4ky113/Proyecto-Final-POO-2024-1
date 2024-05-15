@@ -23,6 +23,16 @@ class Inscripciones_2:
         "records": "Inscritos"
     }
 
+    days_labels = {
+        "M": "Lunes",
+        "T": "Martes",
+        "W": "Miércoles",
+        "H": "Jueves",
+        "F": "Viernes",
+        "S": "Sábado",
+        "U": "Domingo"
+    }
+
     def __init__(self, master=None):
         self.config_db()
         # Ventana principal
@@ -177,24 +187,25 @@ class Inscripciones_2:
         self.tView.configure(selectmode="extended")
 
         #Columnas del Treeview
-        self.tView_cols = ['Código_Curso','Nombre_Curso','num_horas']
-        self.tView_dcols = ['Código_Curso','Nombre_Curso','num_horas']
-        self.tView.configure(columns=self.tView_cols,displaycolumns=self.tView_dcols)
+        tView_cols = ['Id_Alumno', 'Código_Curso', 'Fecha_Inscripción']
+        self.tView.configure(
+            columns=tView_cols,
+            displaycolumns=tView_cols,
+            padding=10
+        )
         
-
-        self.tView.column("#0",anchor="w",width=10,stretch=tk.FALSE)
-        self.tView.column("Código_Curso", anchor="w", width=100)
-        self.tView.column("Nombre_Curso", anchor="w", width=200)
-        self.tView.column("num_horas", anchor="w", width=100)
+        self.tView.column("#0", anchor="w", width=60)
+        self.tView.column(tView_cols[0], anchor="w", width=100)
+        self.tView.column(tView_cols[1], anchor="w", width=100)
+        self.tView.column(tView_cols[2], anchor="w", width=250)
 
         #Cabeceras
-        self.tView.heading("#0", anchor="w")
-        self.tView.heading("Código_Curso", anchor="w", text="Codigo Curso")
-        self.tView.heading("Nombre_Curso", anchor="w", text="Curso")
-        self.tView.heading("num_horas",anchor="w",text= "horas")
-        self.tV_cursos()
+        self.tView.heading("#0", anchor="w", text="# Inscripción")
+        self.tView.heading(tView_cols[0], anchor="w", text="Id del Alumno")
+        self.tView.heading(tView_cols[1],anchor="w",text= "Código del Curso")
+        self.tView.heading(tView_cols[2],anchor="w",text= "Horarios")
+        self.add_records_to_treeview()
         self.tView.place(anchor="nw", height=300, width=790, x=4, y=250)
-
 
         #Scrollbars
         self.scroll_H = ttk.Scrollbar(self.frm_1, name="scroll_h")
@@ -623,25 +634,88 @@ class Inscripciones_2:
         self.apellido_Alumno.set(apellidos_Alu)
         self.nombre_Alumno.set(nombres_Alu)
 
-        return 
+        return
+
+    def _format_records_schedule (self, record_list):
+        """
+            Procesa los días y horarios como strings con el siguiente formato:
+                Para los días:
+                    MTWHFSU
+                    M -> Lunes
+                    T -> Martes
+                    W -> Miercoles
+                    H -> Jueves
+                    F -> Viernes
+                    S -> Sábado
+                    U -> Domingo
+            Y sus horarios como 11-13 -> inicia a las 11 y termina a las 13 (Hora 24h)
+            
+            Ejemplo: 
+                TH;11-13 -> Martes y Jueves de 11 a 13
+
+            *Si se cuenta con que tenga clases en diferentes horas, ejemplo
+            *martes de 7-9 y jueves de 11-13
+            *ESTE FORMATO NO FUNCIONA, toca actualizarlo
+        """
+        for record_index, record_tuple in enumerate(record_list):
+            record = list(record_tuple)
+            days_raw, hours_raw = record[-1].split(';')
+            days_str = ''
+            hours_str = ''
+
+            # processing days
+            for i, day in enumerate(days_raw):
+                if (day not in self.days_labels.keys()):
+                    raise KeyError("DAY NOT AVAILABLE")
+
+                if (0 < i < len(days_raw) - 1):
+                    days_str += ', '
+                elif (i == len(days_raw) - 1):
+                    days_str += ' y '
+
+                days_str += self.days_labels[day]
+
+            # processing hors
+            start_hour, finish_hour = hours_raw.split("-")
+            hours_str = start_hour + ' a ' + finish_hour
+
+            record[-1] = days_str + ' de ' + hours_str
+            record_list[record_index] = tuple(record)
+            
+        return record_list
 
     def idcbox(self):
-            self.cursor = self.connection.cursor()
-            self.cursor.execute(f"SELECT Id_Alumno FROM Alumnos")
-            elements = self.cursor.fetchall()
-            self.cursor.close()   
-            return elements  
+        self.cursor = self.connection.cursor()
+        self.cursor.execute(f"SELECT Id_Alumno FROM Alumnos")
+        elements = self.cursor.fetchall()
+        self.cursor.close()   
+        return elements  
     
-    def tV_cursos(self):
+    def add_records_to_treeview (self):
         registros=self.tView.get_children()
         for registro in registros:
             self.tView.delete(registro)
-        cursos= self.get_courses()
-        print(cursos)
-        for curso in cursos:
-            self.tView.insert('', 'end',values=(curso[0], curso[1],curso[3]))
+        
+        try:
+            records = self.get_records()
+            records = self._format_records_schedule(records)
 
-
+            for record in records:
+                print(record[-1])
+                self.tView.insert(
+                    "",
+                    'end',
+                    text=str(record[0]),
+                    values=record[1:]
+                )
+        except sqlite3.DataError as err:
+            self.tView.insert(
+                "",
+                0,
+                'end',
+                text="Actualmente",
+                values=("no hay",  "ningúna", "inscripción")
+            )
 
 if __name__ == "__main__":
     app = Inscripciones_2()
