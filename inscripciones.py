@@ -177,16 +177,24 @@ class Inscripciones_2:
         self.tView.configure(selectmode="extended")
 
         #Columnas del Treeview
-        self.tView_cols = ['tV_descripción']
-        self.tView_dcols = ['tV_descripción']
+        self.tView_cols = ['Código_Curso','Nombre_Curso','num_horas']
+        self.tView_dcols = ['Código_Curso','Nombre_Curso','num_horas']
         self.tView.configure(columns=self.tView_cols,displaycolumns=self.tView_dcols)
-        self.tView.column("#0",anchor="w",stretch=True,width=10,minwidth=10)
-        self.tView.column("tV_descripción",anchor="w",stretch=True,width=200,minwidth=50)
+        
+
+        self.tView.column("#0",anchor="w",width=10,stretch=tk.FALSE)
+        self.tView.column("Código_Curso", anchor="w", width=100)
+        self.tView.column("Nombre_Curso", anchor="w", width=200)
+        self.tView.column("num_horas", anchor="w", width=100)
 
         #Cabeceras
-        self.tView.heading("#0", anchor="w", text='Curso')
-        self.tView.heading("tV_descripción", anchor="w", text='Descripción')
-        self.tView.place(anchor="nw", height=300, width=790, x=4, y=300)
+        self.tView.heading("#0", anchor="w")
+        self.tView.heading("Código_Curso", anchor="w", text="Codigo Curso")
+        self.tView.heading("Nombre_Curso", anchor="w", text="Curso")
+        self.tView.heading("num_horas",anchor="w",text= "horas")
+        self.tV_cursos()
+        self.tView.place(anchor="nw", height=300, width=790, x=4, y=250)
+
 
         #Scrollbars
         self.scroll_H = ttk.Scrollbar(self.frm_1, name="scroll_h")
@@ -616,7 +624,6 @@ class Inscripciones_2:
         self.nombre_Alumno.set(nombres_Alu)
 
         return 
-        
 
     def idcbox(self):
             self.cursor = self.connection.cursor()
@@ -625,6 +632,16 @@ class Inscripciones_2:
             self.cursor.close()   
             return elements  
     
+    def tV_cursos(self):
+        registros=self.tView.get_children()
+        for registro in registros:
+            self.tView.delete(registro)
+        cursos= self.get_courses()
+        print(cursos)
+        for curso in cursos:
+            self.tView.insert('', 'end',values=(curso[0], curso[1],curso[3]))
+
+
 
 if __name__ == "__main__":
     app = Inscripciones_2()
