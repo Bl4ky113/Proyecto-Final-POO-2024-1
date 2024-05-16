@@ -88,12 +88,14 @@ class Inscripciones_2:
         self.num_Inscripcion.place(anchor="nw", width=100, x=682, y=42)
         
         #Label Fecha
+        
         self.lblFecha = ttk.Label(self.frm_1, name="lblfecha")
         self.lblFecha.configure(background="#f7f9fd", text='Fecha:')
         self.lblFecha.place(anchor="nw", x=630, y=80)
 
         #Entry Fecha
-        self.fecha = ttk.Entry(self.frm_1, name="fecha")
+        self.fecha_value= tk.StringVar()
+        self.fecha = ttk.Entry(self.frm_1, name="fecha",textvariable=self.fecha_value)
         self.fecha.configure(justify="center")
         self.fecha.place(anchor="nw", width=90, x=680, y=80)
 
@@ -730,20 +732,28 @@ class Inscripciones_2:
 
 
     def grabar_inscripcion(self):
+        ## aca solo se graba los datos que piden actualmente la tabla de inscritos
+        # la fecha, el id del estudiante y el id del curso
+        ## Falta agregar la funcion del horario, ya que no esta en la database
+        ## asi podemos completar esta funcion.
+        ## no se como lo vamos a manejar, asi que lo dejo asi por ahora
         id_estudiante= self.cmbx_Id_Alumno.get()
+        if not id_estudiante:
+            messagebox.showerror("Error","Por favor selecciona un ID")
+            return 
         cod_curso= self.valor_id.get()
         nom_curso= self.nombre_del_curso.get()
-        fecha= "hola es hoy"
-        if not id_estudiante:
-            messagebox.showerror("Campos faltantes","Por favor")
         if not cod_curso or not nom_curso:
-            messagebox.showerror("Campos faltantes","Por favor selecciona un curso")
-        
+            messagebox.showerror("Error","Por favor selecciona un curso")
+            return
+        fecha=self.fecha_value.get()
+        if not fecha:
+            messagebox.showerror("Error", "Por favor  digita la fecha")
+            return 
         self.set_inscripcion(id_estudiante,cod_curso,fecha)
-        messagebox.showinfo("Completado")
+        messagebox.showinfo("Completado","La inscripción se guardo con exito")
 
         
-
 
         
             
