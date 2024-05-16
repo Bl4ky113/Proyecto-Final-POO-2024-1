@@ -39,7 +39,7 @@ class Inscripciones_2:
         # Ventana principal
         self.win = tk.Tk(master)
         self.win.configure(
-            background="#f7f9fd",
+            background="#AED6F1",
             height=600,
             width=800
         )
@@ -61,13 +61,13 @@ class Inscripciones_2:
         # Crea los frames
         self.frm_1 = tk.Frame(self.win, name="frm_1")
         self.frm_1.configure(
-            background="#f7f9fd",
+            background="#AED6F1",
             height=600,
             width=800
         )
         self.lblNoInscripcion = ttk.Label(self.frm_1, name="lblnoinscripcion")
         self.lblNoInscripcion.configure(
-            background="#f7f9fd",
+            background=None,
             font="{Arial} 11 {bold}",
             justify="left",
             state="normal",
@@ -85,12 +85,12 @@ class Inscripciones_2:
         #Entry No. Inscripción
         self.num_Inscripcion = ttk.Label(self.frm_1, text= self.numero_de_registro(),  name="num_inscripcion")
         self.num_Inscripcion.configure(justify="right")
-        self.num_Inscripcion.place(anchor="nw", width=100, x=682, y=42)
+        self.num_Inscripcion.place(anchor="nw", width=50, x=700, y=45)
         
         #Label Fecha
         
         self.lblFecha = ttk.Label(self.frm_1, name="lblfecha")
-        self.lblFecha.configure(background="#f7f9fd", text='Fecha:')
+        self.lblFecha.configure(background="#f7f9fd", text='Fecha:',foreground="#21618C")
         self.lblFecha.place(anchor="nw", x=630, y=80)
 
         #Entry Fecha
@@ -103,6 +103,7 @@ class Inscripciones_2:
         self.lblIdAlumno = ttk.Label(self.frm_1, name="lblidalumno")
         self.lblIdAlumno.configure(background="#f7f9fd", text='Id Alumno:')
         self.lblIdAlumno.place(anchor="nw", x=20, y=80)
+
 
         #Combobox Alumno
         self.cmbx_Id_Alumno = ttk.Combobox(self.frm_1, name="cmbx_id_alumno", values=self.idcbox(),state="readonly")
@@ -152,34 +153,43 @@ class Inscripciones_2:
 
         #Label Horario
         self.lblHorario = ttk.Label(self.frm_1, name="label3")
-        self.lblHorario.configure(background="#f7f9fd",state="normal",text='Hora:')
+        self.lblHorario.configure(background="#f7f9fd",state="normal",text='Horario:')
         self.lblHorario.place(anchor="nw", x=635, y=185)
 
         #Entry del Horario
         self.horario = ttk.Entry(self.frm_1, name="entry3")
         self.horario.configure(justify="left", width=166)
-        self.horario.place(anchor="nw", width=100, x=680, y=185)
+        self.horario.place(anchor="nw", width=100, x=690, y=185)
 
         ''' Botones  de la Aplicación'''
+        ## algo de color
+        self.style= ttk.Style()
+        self.style.configure('TButton', background='#85C1E9', foreground='black')
+
+        #Boton Consultar
+        self.btnConsultar= ttk.Button(self.frm_1,name="btnConsultar")
+        self.btnConsultar.configure(text='Consultar')
+        self.btnConsultar.place(anchor="nw",x=150,y=260)
+
         #Botón Guardar
-        self.btnGuardar = ttk.Button(self.frm_1, name="btnguardar", command=self.grabar_inscripcion)
+        self.btnGuardar = ttk.Button(self.frm_1, name="btnguardar" ,command=self.grabar_inscripcion)
         self.btnGuardar.configure(text='Guardar')
-        self.btnGuardar.place(anchor="nw", x=200, y=260)
+        self.btnGuardar.place(anchor="nw", x=250, y=260)
         
         #Botón Editar
         self.btnEditar = ttk.Button(self.frm_1, name="btneditar")
         self.btnEditar.configure(text='Editar')
-        self.btnEditar.place(anchor="nw", x=300, y=260)
+        self.btnEditar.place(anchor="nw", x=350, y=260)
 
         #Botón Eliminar
         self.btnEliminar = ttk.Button(self.frm_1, name="btneliminar")
         self.btnEliminar.configure(text='Eliminar')
-        self.btnEliminar.place(anchor="nw", x=400, y=260)
+        self.btnEliminar.place(anchor="nw", x=450, y=260)
 
         #Botón Cancelar
         self.btnCancelar = ttk.Button(self.frm_1, name="btncancelar")
         self.btnCancelar.configure(text='Cancelar')
-        self.btnCancelar.place(anchor="nw", x=500, y=260)
+        self.btnCancelar.place(anchor="nw", x=550, y=260)
 
         #Separador
         separator1 = ttk.Separator(self.frm_1)
@@ -201,8 +211,8 @@ class Inscripciones_2:
         
         self.tView.column("#0", anchor="w", width=3)
         self.tView.column(tView_cols[0], anchor="w", width=100)
-        self.tView.column(tView_cols[1], anchor="w", width=100)
-
+        self.tView.column(tView_cols[1], anchor="w", width=300)
+        self.tView.column(tView_cols[2],anchor="w",width=100)
         #Cabeceras
         self.tView.heading("#0", anchor="w",text="#")
         self.tView.heading(tView_cols[0],anchor="w",text= "Codigo Curso")
