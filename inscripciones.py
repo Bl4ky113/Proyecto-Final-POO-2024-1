@@ -182,7 +182,11 @@ class Inscripciones_2:
         self.btnEditar.place(anchor="nw", x=350, y=260)
 
         #Botón Eliminar
-        self.btnEliminar = ttk.Button(self.frm_1, name="btneliminar")
+        self.btnEliminar = ttk.Button(
+            self.frm_1, 
+            name="btneliminar",
+            command=self.delete_inscriptions
+        )
         self.btnEliminar.configure(text='Eliminar')
         self.btnEliminar.place(anchor="nw", x=450, y=260)
 
@@ -198,27 +202,30 @@ class Inscripciones_2:
 
         ''' Treeview de la Aplicación'''
         #Treeview
-        self.tView = ttk.Treeview(self.frm_1, name="tview")
+        self.tView: ttk.Treeview = ttk.Treeview(self.frm_1, name="tview")
         self.tView.configure(selectmode="extended")
-        self.tView.bind("<ButtonRelease-1>", self.autocompletar_curso)
+        #self.tView.bind("<ButtonRelease-1>", self.autocompletar_curso)
         #Columnas del Treeview
-        tView_cols = ['Código_curso','Nombre_Curso','num_horas']
+        tView_cols = ['Id_Alumno','Código_Curso', 'Horario', 'Fecha_Inscripción']
         self.tView.configure(
             columns=tView_cols,
             displaycolumns=tView_cols,
+            selectmode='extended',
             padding=10
         )
         
-        self.tView.column("#0", anchor="w", width=3)
+        self.tView.column("#0", anchor="w", width=50)
         self.tView.column(tView_cols[0], anchor="w", width=100)
-        self.tView.column(tView_cols[1], anchor="w", width=300)
-        self.tView.column(tView_cols[2],anchor="w",width=100)
+        self.tView.column(tView_cols[1], anchor="w", width=100)
+        self.tView.column(tView_cols[2], anchor="w", width=200)
+        self.tView.column(tView_cols[3], anchor="w", width=100)
         #Cabeceras
-        self.tView.heading("#0", anchor="w",text="#")
-        self.tView.heading(tView_cols[0],anchor="w",text= "Codigo Curso")
-        self.tView.heading(tView_cols[1],anchor="w",text= "Curso")
-        self.tView.heading(tView_cols[2],anchor="w",text= "Horas")
-        self.add_cursos_to_treeview()
+        self.tView.heading("#0", anchor="w", text="# Registro")
+        self.tView.heading(tView_cols[0], anchor="w", text="Id Alumno")
+        self.tView.heading(tView_cols[1], anchor="w", text="Código Curso")
+        self.tView.heading(tView_cols[2], anchor="w", text="Horario")
+        self.tView.heading(tView_cols[3], anchor="w", text="Fecha Inscripción")
+        self.add_records_to_treeview()
         self.tView.place(anchor="nw", height=300, width=790, x=4, y=290)
 
         #Scrollbars
@@ -280,8 +287,7 @@ class Inscripciones_2:
             );
             CREATE TABLE IF NOT EXISTS Cursos (
                 Código_Curso VARCHAR(16) NOT NULL,
-                Nombre_Curso VARCHAR(32) NOT NULL,
-                Descripción_Curso VARCHAR(128),
+                Descripción_Curso VARCHAR(128) NOT NULL,
                 Num_Horas SMALLINT(2) NOT NULL,
 
                 PRIMARY KEY (Código_Curso)
@@ -290,6 +296,7 @@ class Inscripciones_2:
                 No_Inscripción INTEGER PRIMARY KEY AUTOINCREMENT,
                 Id_Alumno VARCHAR(32) NOT NULL,
                 Código_Curso VARCHAR(16) NOT NULL,
+                Horario VARCHAR(16) NOT NULL,
                 Fecha_Inscripción DATE NOT NULL,
 
                 FOREIGN KEY (Id_Alumno) REFERENCES Alumnos(Id_Alumno),
@@ -325,7 +332,7 @@ class Inscripciones_2:
             logger.log(100, "SEEDING DATA TO DB AT: Cursos")
             self.cursor.execute('''
                 INSERT INTO Cursos
-                    (Código_Curso, Nombre_Curso, Num_Horas)
+                    (Código_Curso, Descripción_Curso, Num_Horas)
                 VALUES
                     ("2015168", "Fundamentos de Matemáticas", 72),
                     ("2015181", "Sistemas Númericos", 72),
@@ -540,7 +547,7 @@ class Inscripciones_2:
 
         return courses
 
-    def get_record_by_id (self, record_id: str) -> tuple([str, str, str, str, str, str, str, str, str, str]):
+    def get_record_by_id (self, record_id: str) -> tuple([str, str, str, str, str]):
         record = self.__get_element_by_id(
             'records',
             record_id,
@@ -556,7 +563,7 @@ class Inscripciones_2:
 
         return record
 
-    def get_records (self, filters: dict={}) -> list(tuple([str, str, str, str, str, str, str, str, str, str])):
+    def get_records (self, filters: dict={}) -> list(tuple([str, str, str, str, str])):
         if (len(filters.keys()) == 0):
             records = self.__get_all_elements('records')
 
@@ -654,7 +661,7 @@ class Inscripciones_2:
         self.apellido_Alumno.set(datos[2])
         self.nombre_Alumno.set(datos[3])
 
-    def _format_records_schedule (self, record_list):
+    def _format_record_schedule (self, record_tuple):
         """
             Procesa los días y horarios como strings con el siguiente formato:
                 Para los días:
@@ -675,32 +682,29 @@ class Inscripciones_2:
             *martes de 7-9 y jueves de 11-13
             *ESTE FORMATO NO FUNCIONA, toca actualizarlo
         """
-        for record_index, record_tuple in enumerate(record_list):
-            record = list(record_tuple)
-            days_raw, hours_raw = record[-1].split(';')
-            days_str = ''
-            hours_str = ''
+        record = list(record_tuple)
+        days_raw, hours_raw = record[3].split(';') # 3rd index is 'Horario'
+        days_str = ''
+        hours_str = ''
 
-            # processing days
-            for i, day in enumerate(days_raw):
-                if (day not in self.days_labels.keys()):
-                    raise KeyError("DAY NOT AVAILABLE")
+        # processing days
+        for i, day in enumerate(days_raw):
+            if (day not in self.days_labels.keys()):
+                raise KeyError("DAY NOT AVAILABLE")
 
-                if (0 < i < len(days_raw) - 1):
-                    days_str += ', '
-                elif (i == len(days_raw) - 1):
-                    days_str += ' y '
+            if (0 < i < len(days_raw) - 1):
+                days_str += ', '
+            elif (i == len(days_raw) - 1):
+                days_str += ' y '
 
-                days_str += self.days_labels[day]
+            days_str += self.days_labels[day]
 
-            # processing hors
-            start_hour, finish_hour = hours_raw.split("-")
-            hours_str = start_hour + ' a ' + finish_hour
+        # processing horas
+        start_hour, finish_hour = hours_raw.split("-")
+        hours_str = start_hour + ' a ' + finish_hour
 
-            record[-1] = days_str + ' de ' + hours_str
-            record_list[record_index] = tuple(record)
-            
-        return record_list
+        record[3] = days_str + ' de ' + hours_str # 3rd index is 'Horario'
+        return record
 
     def idcbox(self):
         self.cursor = self.connection.cursor()
@@ -709,21 +713,22 @@ class Inscripciones_2:
         self.cursor.close()   
         return elements  
     
-    def add_cursos_to_treeview (self):
-        cursos=self.tView.get_children()
-        for curso in cursos:
-            self.tView.delete(curso)
+    def add_records_to_treeview (self, record_filter={}) -> None:
+        treeview_records = self.tView.get_children()
+        for record in treeview_records:
+            self.tView.delete(record)
         
         try:
-            cursos = self.get_courses()
-            i=0
-            for curso in cursos:
-                i= i +1
+            records = self.get_records(filters=record_filter)
+
+            for i, record in enumerate(records):
+                record = self._format_record_schedule(record)
+
                 self.tView.insert(
                     "",
                     'end',
-                    text=str(i),
-                    values=(curso[0],curso[1],curso[3])
+                    text=record[0],
+                    values=record[1:]
                 )
         except sqlite3.DataError as err:
             self.tView.insert(
@@ -731,8 +736,10 @@ class Inscripciones_2:
                 0,
                 'end',
                 text="Actualmente",
-                values=("no"," hay",  "ningún curso")
+                values=("no"," hay", "ningún registro")
             )
+
+        return
 
     def autocompletar_curso(self, event):
         seleccion= self.tView.focus()
@@ -740,6 +747,8 @@ class Inscripciones_2:
         self.valor_id.set(datos_curso[0])
         self.nombre_del_curso.set(datos_curso[1])       
 
+    def __highlight_btns (self, buttons): 
+        pass
 
     def grabar_inscripcion(self):
         ## aca solo se graba los datos que piden actualmente la tabla de inscritos
@@ -762,10 +771,14 @@ class Inscripciones_2:
             return 
         self.set_inscripcion(id_estudiante,cod_curso,fecha)
         messagebox.showinfo("Completado","La inscripción se guardo con exito")
-
         
+    def delete_inscriptions (self):
+        """
+            
+        """
 
-        
+        print(self.tView.selection())
+        pass
             
 if __name__ == "__main__":
     app = Inscripciones_2()
