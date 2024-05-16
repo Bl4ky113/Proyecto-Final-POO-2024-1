@@ -7,6 +7,7 @@ import os
 
 import tkinter as tk
 import tkinter.ttk as ttk
+from  tkinter import messagebox
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,16 @@ class Inscripciones_2:
         "students": "Alumnos",
         "courses": "Cursos",
         "records": "Inscritos"
+    }
+
+    days_labels = {
+        "M": "Lunes",
+        "T": "Martes",
+        "W": "Miércoles",
+        "H": "Jueves",
+        "F": "Viernes",
+        "S": "Sábado",
+        "U": "Domingo"
     }
 
     def __init__(self, master=None):
@@ -94,7 +105,7 @@ class Inscripciones_2:
         #Combobox Alumno
         self.cmbx_Id_Alumno = ttk.Combobox(self.frm_1, name="cmbx_id_alumno", values=self.idcbox(),state="readonly")
         self.cmbx_Id_Alumno.place(anchor="nw", width=112, x=100, y=80)
-        self.cmbx_Id_Alumno.bind("<<ComboboxSelected>>", self.autocompletar )
+        self.cmbx_Id_Alumno.bind("<<ComboboxSelected>>", self.autocompletar_nombre )
         #Label Alumno
         self.lblNombres = ttk.Label(self.frm_1, name="lblnombres")
         self.lblNombres.configure(text='Nombre(s):')
@@ -121,7 +132,8 @@ class Inscripciones_2:
         self.lblIdCurso.place(anchor="nw", x=20, y=185)
 
         #Entry Curso
-        self.id_Curso = ttk.Entry(self.frm_1, name="id_curso")
+        self.valor_id= tk.StringVar()
+        self.id_Curso = ttk.Entry(self.frm_1, name="id_curso",textvariable=self.valor_id)
         self.id_Curso.configure(justify="left", width=166)
         self.id_Curso.place(anchor="nw", width=166, x=100, y=185)
 
@@ -131,7 +143,8 @@ class Inscripciones_2:
         self.lblDscCurso.place(anchor="nw", x=275, y=185)
 
         #Entry de Descripción del Curso 
-        self.descripc_Curso = ttk.Entry(self.frm_1, name="descripc_curso")
+        self.nombre_del_curso= tk.StringVar()
+        self.descripc_Curso = ttk.Entry(self.frm_1, name="descripc_curso",textvariable=self.nombre_del_curso)
         self.descripc_Curso.configure(justify="left", width=166)
         self.descripc_Curso.place(anchor="nw", width=300, x=325, y=185)
 
@@ -147,7 +160,7 @@ class Inscripciones_2:
 
         ''' Botones  de la Aplicación'''
         #Botón Guardar
-        self.btnGuardar = ttk.Button(self.frm_1, name="btnguardar")
+        self.btnGuardar = ttk.Button(self.frm_1, name="btnguardar", command=self.grabar_inscripcion)
         self.btnGuardar.configure(text='Guardar')
         self.btnGuardar.place(anchor="nw", x=200, y=260)
         
@@ -169,36 +182,36 @@ class Inscripciones_2:
         #Separador
         separator1 = ttk.Separator(self.frm_1)
         separator1.configure(orient="horizontal")
-        separator1.place(anchor="nw", width=796, x=2, y=245)
+        separator1.place(anchor="nw", width=796, x=2, y=240)
 
         ''' Treeview de la Aplicación'''
         #Treeview
         self.tView = ttk.Treeview(self.frm_1, name="tview")
         self.tView.configure(selectmode="extended")
-
+        self.tView.bind("<ButtonRelease-1>", self.autocompletar_curso)
         #Columnas del Treeview
-        self.tView_cols = ['Código_Curso','Nombre_Curso','num_horas']
-        self.tView_dcols = ['Código_Curso','Nombre_Curso','num_horas']
-        self.tView.configure(columns=self.tView_cols,displaycolumns=self.tView_dcols)
+        tView_cols = ['Código_curso','Nombre_Curso','num_horas']
+        self.tView.configure(
+            columns=tView_cols,
+            displaycolumns=tView_cols,
+            padding=10
+        )
         
-
-        self.tView.column("#0",anchor="w",width=10,stretch=tk.FALSE)
-        self.tView.column("Código_Curso", anchor="w", width=100)
-        self.tView.column("Nombre_Curso", anchor="w", width=200)
-        self.tView.column("num_horas", anchor="w", width=100)
+        self.tView.column("#0", anchor="w", width=3)
+        self.tView.column(tView_cols[0], anchor="w", width=100)
+        self.tView.column(tView_cols[1], anchor="w", width=100)
 
         #Cabeceras
-        self.tView.heading("#0", anchor="w")
-        self.tView.heading("Código_Curso", anchor="w", text="Codigo Curso")
-        self.tView.heading("Nombre_Curso", anchor="w", text="Curso")
-        self.tView.heading("num_horas",anchor="w",text= "horas")
-        self.tV_cursos()
-        self.tView.place(anchor="nw", height=300, width=790, x=4, y=250)
-
+        self.tView.heading("#0", anchor="w",text="#")
+        self.tView.heading(tView_cols[0],anchor="w",text= "Codigo Curso")
+        self.tView.heading(tView_cols[1],anchor="w",text= "Curso")
+        self.tView.heading(tView_cols[2],anchor="w",text= "Horas")
+        self.add_cursos_to_treeview()
+        self.tView.place(anchor="nw", height=300, width=790, x=4, y=290)
 
         #Scrollbars
         self.scroll_H = ttk.Scrollbar(self.frm_1, name="scroll_h")
-        self.scroll_H.configure(orient="horizontal")
+        self.scroll_H.configure(orient="horizontal")  
         self.scroll_H.place(anchor="s", height=12, width=1534, x=15, y=595)
         self.scroll_Y = ttk.Scrollbar(self.frm_1, name="scroll_y")
         self.scroll_Y.configure(orient="vertical")
@@ -262,12 +275,11 @@ class Inscripciones_2:
                 PRIMARY KEY (Código_Curso)
             );
             CREATE TABLE IF NOT EXISTS Inscritos (
-                No_Inscripción INTEGER AUTO_INCREMENT,
+                No_Inscripción INTEGER PRIMARY KEY AUTOINCREMENT,
                 Id_Alumno VARCHAR(32) NOT NULL,
                 Código_Curso VARCHAR(16) NOT NULL,
                 Fecha_Inscripción DATE NOT NULL,
 
-                PRIMARY KEY (No_Inscripción),
                 FOREIGN KEY (Id_Alumno) REFERENCES Alumnos(Id_Alumno),
                 FOREIGN KEY (Código_Curso) REFERENCES Cursos(Código_Curso)
             );
@@ -611,38 +623,130 @@ class Inscripciones_2:
         self.connection.commit()
         self.cursor.close()
 
+    def set_inscripcion(self,id,cod_Curso,fecha_i):
+        self.cursor= self.connection.cursor()
+        query = "INSERT INTO Inscritos (Id_Alumno, Código_Curso, Fecha_Inscripción) VALUES (?, ?, ?)"
+        inscripcion = (id, cod_Curso, fecha_i)
+        self.cursor.execute(query,inscripcion)
+        self.connection.commit()
+        self.cursor.close()
 
     ## autocompleta el nombre yy el apellido esta conectado al combobox
-    def autocompletar(self,event):
+    def autocompletar_nombre(self,event):
         student_id = self.cmbx_Id_Alumno.get()
 
         datos = self.get_student_by_id(student_id)
         nombres_Alu= datos[2]
         apellidos_Alu = datos[3]
         ##modificamos los entry de nombres y apellidos
-        self.apellido_Alumno.set(apellidos_Alu)
-        self.nombre_Alumno.set(nombres_Alu)
+        self.apellido_Alumno.set(datos[2])
+        self.nombre_Alumno.set(datos[3])
 
-        return 
+    def _format_records_schedule (self, record_list):
+        """
+            Procesa los días y horarios como strings con el siguiente formato:
+                Para los días:
+                    MTWHFSU
+                    M -> Lunes
+                    T -> Martes
+                    W -> Miercoles
+                    H -> Jueves
+                    F -> Viernes
+                    S -> Sábado
+                    U -> Domingo
+            Y sus horarios como 11-13 -> inicia a las 11 y termina a las 13 (Hora 24h)
+            
+            Ejemplo: 
+                TH;11-13 -> Martes y Jueves de 11 a 13
+
+            *Si se cuenta con que tenga clases en diferentes horas, ejemplo
+            *martes de 7-9 y jueves de 11-13
+            *ESTE FORMATO NO FUNCIONA, toca actualizarlo
+        """
+        for record_index, record_tuple in enumerate(record_list):
+            record = list(record_tuple)
+            days_raw, hours_raw = record[-1].split(';')
+            days_str = ''
+            hours_str = ''
+
+            # processing days
+            for i, day in enumerate(days_raw):
+                if (day not in self.days_labels.keys()):
+                    raise KeyError("DAY NOT AVAILABLE")
+
+                if (0 < i < len(days_raw) - 1):
+                    days_str += ', '
+                elif (i == len(days_raw) - 1):
+                    days_str += ' y '
+
+                days_str += self.days_labels[day]
+
+            # processing hors
+            start_hour, finish_hour = hours_raw.split("-")
+            hours_str = start_hour + ' a ' + finish_hour
+
+            record[-1] = days_str + ' de ' + hours_str
+            record_list[record_index] = tuple(record)
+            
+        return record_list
 
     def idcbox(self):
-            self.cursor = self.connection.cursor()
-            self.cursor.execute(f"SELECT Id_Alumno FROM Alumnos")
-            elements = self.cursor.fetchall()
-            self.cursor.close()   
-            return elements  
+        self.cursor = self.connection.cursor()
+        self.cursor.execute(f"SELECT Id_Alumno FROM Alumnos")
+        elements = self.cursor.fetchall()
+        self.cursor.close()   
+        return elements  
     
-    def tV_cursos(self):
-        registros=self.tView.get_children()
-        for registro in registros:
-            self.tView.delete(registro)
-        cursos= self.get_courses()
-        print(cursos)
+    def add_cursos_to_treeview (self):
+        cursos=self.tView.get_children()
         for curso in cursos:
-            self.tView.insert('', 'end',values=(curso[0], curso[1],curso[3]))
+            self.tView.delete(curso)
+        
+        try:
+            cursos = self.get_courses()
+            i=0
+            for curso in cursos:
+                i= i +1
+                self.tView.insert(
+                    "",
+                    'end',
+                    text=str(i),
+                    values=(curso[0],curso[1],curso[3])
+                )
+        except sqlite3.DataError as err:
+            self.tView.insert(
+                "",
+                0,
+                'end',
+                text="Actualmente",
+                values=("no"," hay",  "ningún curso")
+            )
+
+    def autocompletar_curso(self, event):
+        seleccion= self.tView.focus()
+        datos_curso= self.tView.item(seleccion,'values')
+        self.valor_id.set(datos_curso[0])
+        self.nombre_del_curso.set(datos_curso[1])       
 
 
+    def grabar_inscripcion(self):
+        id_estudiante= self.cmbx_Id_Alumno.get()
+        cod_curso= self.valor_id.get()
+        nom_curso= self.nombre_del_curso.get()
+        fecha= "hola es hoy"
+        if not id_estudiante:
+            messagebox.showerror("Campos faltantes","Por favor")
+        if not cod_curso or not nom_curso:
+            messagebox.showerror("Campos faltantes","Por favor selecciona un curso")
+        
+        self.set_inscripcion(id_estudiante,cod_curso,fecha)
+        messagebox.showinfo("Completado")
 
+        
+
+
+        
+            
 if __name__ == "__main__":
     app = Inscripciones_2()
     app.run()
