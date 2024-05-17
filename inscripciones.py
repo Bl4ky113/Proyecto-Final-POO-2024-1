@@ -146,14 +146,19 @@ class Inscripciones_2:
         self.lblDscCurso.place(anchor="nw", x=275, y=185)
 
         #Entry de Descripción del Curso 
+        self.lista_Cursos = ttk.Combobox(self.frm_1,name="cmbx_cursos",values=self.cursosbox())
+        self.lista_Cursos.place(anchor="nw", width=300, x=325, y=185)
+        #self.lista_Cursos.bind("<<ComboboxSelected>>",self.completar_datos_Curso)
+        """
         self.nombre_del_curso= tk.StringVar()
         self.descripc_Curso = ttk.Entry(self.frm_1, name="descripc_curso",textvariable=self.nombre_del_curso)
         self.descripc_Curso.configure(justify="left", width=166)
         self.descripc_Curso.place(anchor="nw", width=300, x=325, y=185)
+        """
 
         #Label Horario
         self.lblHorario = ttk.Label(self.frm_1, name="label3")
-        self.lblHorario.configure(background="#f7f9fd",state="normal",text='Horario:')
+        self.lblHorario.configure(background="#f7f9fd",state="normal",text='Hora:')
         self.lblHorario.place(anchor="nw", x=635, y=185)
 
         #Entry del Horario
@@ -218,7 +223,6 @@ class Inscripciones_2:
         self.tView.heading(tView_cols[0],anchor="w",text= "Codigo Curso")
         self.tView.heading(tView_cols[1],anchor="w",text= "Curso")
         self.tView.heading(tView_cols[2],anchor="w",text= "Horas")
-        self.add_cursos_to_treeview()
         self.tView.place(anchor="nw", height=300, width=790, x=4, y=290)
 
         #Scrollbars
@@ -280,7 +284,6 @@ class Inscripciones_2:
             );
             CREATE TABLE IF NOT EXISTS Cursos (
                 Código_Curso VARCHAR(16) NOT NULL,
-                Nombre_Curso VARCHAR(32) NOT NULL,
                 Descripción_Curso VARCHAR(128),
                 Num_Horas SMALLINT(2) NOT NULL,
 
@@ -325,7 +328,7 @@ class Inscripciones_2:
             logger.log(100, "SEEDING DATA TO DB AT: Cursos")
             self.cursor.execute('''
                 INSERT INTO Cursos
-                    (Código_Curso, Nombre_Curso, Num_Horas)
+                    (Código_Curso, Descripción_Curso, Num_Horas)
                 VALUES
                     ("2015168", "Fundamentos de Matemáticas", 72),
                     ("2015181", "Sistemas Númericos", 72),
@@ -352,8 +355,8 @@ class Inscripciones_2:
                     (Id_Alumno, Id_Carrera, Nombres, Apellidos, Fecha_Ingreso, Ciudad, Telef_Cel)
                 VALUES
                     ("7856019526884687", "2933", "Martín", "Hernández", "2023-08-01", "Bogota", "1234567890"),
-                    ("5399046924785948", "2518", "Friend", "Fellow", "2024-01-01", "Bogotá", "5432109876"),
-                    ("1722202291005220", "2879", "Someone", "Subject", "2024-05-05", "Nowhere", "0000000000"),
+                    ("5399046924785948", "2518", "Juan", "Morales", "2024-01-01", "Bogotá", "5432109876"),
+                    ("1722202291005220", "2879", "Andres", "hernandez", "2024-05-05", "Medellin", "0000000000"),
                     ("4274203119662378", "2545", "Laura", "Moreno", "2023-08-01", "Fusagasuga", "1132432433"),
                     ("1827391938728989", "2879", "Nicolas", "Corredor", "2023-08-01", "Bogotá", "1353515989");
             ''')
@@ -393,6 +396,39 @@ class Inscripciones_2:
 
         return element
 
+    def get_course_by_description(self, course_description: str) -> tuple:
+        course = self.__get_element_by_description(
+            'courses',
+            course_description,
+            {
+                "min": 1,  # Ajusta estos valores según las restricciones reales
+                "max": 255,  # Ajusta estos valores según las restricciones reales
+                "label": "Descripción_Curso"
+            }
+        )
+
+        if not course:
+            raise sqlite3.DataError(f"COURSE WITH DESCRIPTION: {course_description} NOT FOUND")
+
+        return course
+    
+
+    def get_course_by_description(self, course_description: str) -> tuple:
+        course = self.__get_element_by_description(
+            'courses',
+            course_description,
+            {
+                "min": 1,  # Ajusta estos valores según las restricciones reales
+                "max": 255,  # Ajusta estos valores según las restricciones reales
+                "label": "Descripción_Curso"
+            }
+        )
+
+        if not course:
+            raise sqlite3.DataError(f"COURSE WITH DESCRIPTION: {course_description} NOT FOUND")
+
+        return course
+    
     def __get_all_elements (self, element_table: str) -> list(tuple()):
         self.cursor = self.connection.cursor()
         element_table_str = self.db_tables[element_table]
@@ -524,6 +560,7 @@ class Inscripciones_2:
 
         return course
 
+    
     def get_courses (self, filters: dict={}) -> list(tuple([str, str, str, int])):
         if (len(filters.keys()) == 0):
             courses = self.__get_all_elements('courses')
@@ -651,8 +688,8 @@ class Inscripciones_2:
         nombres_Alu= datos[2]
         apellidos_Alu = datos[3]
         ##modificamos los entry de nombres y apellidos
-        self.apellido_Alumno.set(datos[2])
-        self.nombre_Alumno.set(datos[3])
+        self.apellido_Alumno.set(nombres_Alu)
+        self.nombre_Alumno.set(apellidos_Alu)
 
     def _format_records_schedule (self, record_list):
         """
@@ -706,9 +743,20 @@ class Inscripciones_2:
         self.cursor = self.connection.cursor()
         self.cursor.execute(f"SELECT Id_Alumno FROM Alumnos")
         elements = self.cursor.fetchall()
+        
         self.cursor.close()   
+        elements= [ids[0] for ids in elements ]
         return elements  
     
+    def cursosbox(self):
+        self.cursor = self.connection.cursor()
+        self.cursor.execute(f"SELECT Descripción_Curso FROM Cursos")
+        courses = self.cursor.fetchall()
+        self.cursor.close()
+        courses = [curso[0] for curso in courses]
+        return courses
+        
+        
     def add_cursos_to_treeview (self):
         cursos=self.tView.get_children()
         for curso in cursos:
