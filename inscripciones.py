@@ -4,6 +4,7 @@ import sqlite3
 import logging
 import re
 import os
+import calendar
 
 import tkinter as tk
 import tkinter.ttk as ttk
@@ -257,6 +258,18 @@ class Inscripciones_2:
 
         return centrado
     
+    def validar_fecha(self, event):
+        fecha_ingresada = self.fecha.get()
+        formato_valido = re.match(r'\d{2}/\d{2}/\d{4}', fecha_ingresada)
+        if formato_valido:
+            dia, mes, anio = map(int, fecha_ingresada.split('/'))
+            try:
+                calendar.datetime.datetime(anio, mes, dia)
+                pass
+            except ValueError:
+                messagebox.showerror("Error", "La fecha ingresada no es válida")
+        else:
+            messagebox.showerror("Error", "No se cakreko el formato esta mal")
 
     def config_db (self):
         self.connection = sqlite3.connect(self.db_path)
@@ -804,7 +817,7 @@ class Inscripciones_2:
         
     def delete_inscriptions (self):
         pass
-            
+
 if __name__ == "__main__":
     app = Inscripciones_2()
     app.run()
