@@ -84,6 +84,7 @@ class Inscripciones_2:
         )
 
         #Entry No. Inscripción
+        self.num_InscripcionVar = tk.IntVar(value=self.numero_de_registro())
         self.num_Inscripcion = ttk.Label(self.frm_1, text= self.numero_de_registro(),  name="num_inscripcion")
         self.num_Inscripcion.configure(justify="right")
         self.num_Inscripcion.place(anchor="nw", width=50, x=700, y=45)
@@ -101,17 +102,16 @@ class Inscripciones_2:
         self.fecha.place(anchor="nw", width=90, x=680, y=80)
         self.fecha.bind("<FocusOut>", self.validar_fecha)
 
-
         #Label Alumno
         self.lblIdAlumno = ttk.Label(self.frm_1, name="lblidalumno")
         self.lblIdAlumno.configure(background="#f7f9fd", text='Id Alumno:')
         self.lblIdAlumno.place(anchor="nw", x=20, y=80)
 
-
         #Combobox Alumno
         self.cmbx_Id_Alumno = ttk.Combobox(self.frm_1, name="cmbx_id_alumno", values=self.idcbox(),state="readonly")
         self.cmbx_Id_Alumno.place(anchor="nw", width=112, x=100, y=80)
         self.cmbx_Id_Alumno.bind("<<ComboboxSelected>>", self.autocompletar_nombre )
+
         #Label Alumno
         self.lblNombres = ttk.Label(self.frm_1, name="lblnombres")
         self.lblNombres.configure(text='Nombre(s):')
@@ -185,7 +185,7 @@ class Inscripciones_2:
         self.btnGuardar.configure(text='Guardar')
         self.btnGuardar.place(anchor="nw", x=250, y=260)
         
-        #Botón Editar
+        #Botón Editar 
         self.btnEditar = ttk.Button(self.frm_1, name="btneditar")
         self.btnEditar.configure(text='Editar')
         self.btnEditar.place(anchor="nw", x=350, y=260)
@@ -201,8 +201,13 @@ class Inscripciones_2:
 
         #Botón Cancelar
         self.btnCancelar = ttk.Button(self.frm_1, name="btncancelar")
-        self.btnCancelar.configure(text='Cancelar')
+        self.btnCancelar.configure(text='Cancelar', command= self.reniciar_Registro)
         self.btnCancelar.place(anchor="nw", x=550, y=260)
+
+        #Botón Editar plus
+        self.btnEditarplus = ttk.Button(self.frm_1, name="btneditarplus")
+        self.btnEditarplus.configure(text='Editar Alumnos',  command= lambda: self.ventana_secundaria_alumnos(self.cmbx_Id_Alumno.get()))
+        self.btnEditarplus.place(anchor="nw", x=230, y=78)
 
         #Separador
         separator1 = ttk.Separator(self.frm_1)
@@ -272,6 +277,207 @@ class Inscripciones_2:
                 messagebox.showerror("Error", "La fecha ingresada no es válida")
         else:
             messagebox.showerror("Error", "No se cakreko el formato esta mal")
+
+    def reniciar_Registro(self):
+        self.num_InscripcionVar.set(self.numero_de_registro())
+        self.fecha_value.set("")
+        self.apellido_Alumno.set("")
+        self.nombre_Alumno.set("")
+        self.cmbx_Cursos.set("")
+        self.valor_id.set("")
+        self.value_horario.set("")
+        self.cmbx_Id_Alumno.set("")
+        try:
+            self.habilitar(self.mini)
+        except:
+            pass
+
+    def numero_de_registro(self):   
+        self.cursor = self.connection.cursor()
+        num_alumnos = 'SELECT * FROM Inscritos;'  
+        self.cursor.execute(num_alumnos) 
+        cantidad = len(self.cursor.fetchall())
+        id_registro = cantidad + 1
+        self.cursor.close()
+        return id_registro
+    
+    def habilitar(self, ventana):
+        ventana.destroy()
+        self.btnEditarplus["state"] = "normal"
+
+    def ventana_secundaria_alumnos(self,id):
+        if id == "":
+            messagebox.showerror("Error", "Porfavor, seleccione algun Id")
+        else:
+            self.btnEditarplus["state"] = "disabled"    
+            self.mini = tk.Toplevel()
+            self.mini.resizable(False,False)
+            self.mini.title("Edición de datos")
+            self.mini.configure(background="#2271b3")
+            self.mini.geometry(self.centrarVentana(460,200))
+            self.mini.protocol("WM_DELETE_WINDOW", lambda: self.habilitar(self.mini))
+            
+            #Label nombre
+            self.lblname = ttk.Label(self.mini, name="lblname ")
+            self.lblname.configure(background="#bfcde6", text='Nombres:')
+            self.lblname.place(anchor="nw", x=20, y=20)
+    
+            #Entry nombre
+            self.name = ttk.Entry(self.mini, name="name")
+            self.name.configure(justify="center")
+            self.name.place(anchor="nw", width=90, x=90, y=20)
+    
+            #Label Apellido
+            self.lbllastname = ttk.Label(self.mini, name="lbllastname")
+            self.lbllastname.configure(background="#bfcde6", text='Apellidos:')
+            self.lbllastname.place(anchor="nw", x=20, y=50)
+    
+            #Entry Apellido
+            self.lastname = ttk.Entry(self.mini, name="lastname")
+            self.lastname.configure(justify="center")
+            self.lastname.place(anchor="nw", width=90, x=90, y=50)
+    
+            #Label Fecha
+            self.lbldate = ttk.Label(self.mini, name="lbldate")
+            self.lbldate.configure(background="#bfcde6", text='Fecha:')
+            self.lbldate.place(anchor="nw", x=20, y=80)
+    
+            #Entry Fecha
+            self.date = ttk.Entry(self.mini, name="date")
+            self.date.configure(justify="center")
+            self.date.place(anchor="nw", width=90, x=90, y=80)
+    
+            #Label Ciudad
+            self.lblcity = ttk.Label(self.mini, name="lblcity")
+            self.lblcity.configure(background="#bfcde6", text='Ciudad:')
+            self.lblcity.place(anchor="nw", x=20, y= 110)
+    
+            #Entry Ciudad
+            self.place = ttk.Entry(self.mini, name="place")
+            self.place.configure(justify="center")
+            self.place.place(anchor="nw", width=90, x=90, y=110)
+    
+            #Label Departamento 
+            self.lbldepartment = ttk.Label(self.mini, name="lbldepartment")
+            self.lbldepartment.configure(background="#bfcde6", text='Departamento:')
+            self.lbldepartment.place(anchor="nw", x=240, y= 20)
+    
+            #Entry Departamento
+            self.department = ttk.Entry(self.mini, name="department")
+            self.department.configure(justify="center")
+            self.department.place(anchor="nw", width=90, x=340, y=20)
+    
+            #Label Dirección
+            self.lbladdress = ttk.Label(self.mini, name="lbladress")
+            self.lbladdress.configure(background="#bfcde6", text='Dirección:')
+            self.lbladdress.place(anchor="nw", x=240, y=50)
+    
+            #Entry Dirección
+            self.address = ttk.Entry(self.mini, name="address")
+            self.address.configure(justify="center")
+            self.address.place(anchor="nw", width=90, x=340, y=50)
+                  
+            #Label Cel
+            self.lblcellphone = ttk.Label(self.mini, name="lblcellphone")
+            self.lblcellphone.configure(background="#bfcde6", text='Teléfono Celular:')
+            self.lblcellphone.place(anchor="nw", x=240, y= 80)
+    
+            #Entry Cel
+            self.cellphone = ttk.Entry(self.mini, name="cellphone")
+            self.cellphone.configure(justify="center")
+            self.cellphone.place(anchor="nw", width=90, x=340, y=80)
+    
+            #Label Fijo
+            self.lblphone = ttk.Label(self.mini, name="lblphone")
+            self.lblphone.configure(background="#bfcde6", text='Teléfono Fijo:')
+            self.lblphone.place(anchor="nw", x=240, y= 110)
+    
+            #Entry Fijo
+            self.phone = ttk.Entry(self.mini, name="phone")
+            self.phone.configure(justify="center")
+            self.phone.place(anchor="nw", width=90, x=340, y=110)
+    
+            #Botones
+            guardar = ttk.Button(self.mini, text="Guardar", command= lambda: self.setter_alumnos(id))
+            guardar.place(anchor="nw", width=90, x=250, y=160)
+    
+            cerrar = ttk.Button(self.mini,text="Cerrar",command = lambda: self.habilitar(self.mini))
+            cerrar.place(x=355,y=160)
+
+
+    def setter_alumnos (self,id):
+        self.cursor = self.connection.cursor()    
+        if self.name.get() == "":
+            pass
+        elif len(self.name.get()) > 64:
+            messagebox.showerror("Error", "Ocurrio un error con Nombre, deben ser maximo 64 caracteres")
+        else:
+            self.cursor.execute(f"UPDATE Alumnos SET Nombres= '{self.name.get()}'WHERE Id_Alumno='{id}'" )
+        
+        if self.lastname.get() == "":
+            pass
+        elif len(self.lastname.get()) > 64:
+            messagebox.showerror("Error", "Ocurrio un error con Apellido, deben ser maximo 64 caracteres")
+        else:
+            self.cursor.execute(f"UPDATE Alumnos SET Apellidos= '{self.lastname.get()}'WHERE Id_Alumno='{id}'" )
+
+        if self.place.get() == "":
+            pass
+        elif len(self.place.get()) > 64:
+            messagebox.showerror("Error", "Ocurrio un error con Ciudad, deben ser maximo 64 caracteres")
+        else:
+            self.cursor.execute(f"UPDATE Alumnos SET  Ciudad='{self.place.get()}' WHERE Id_Alumno='{id}'")
+
+        if self.date.get() == "":
+            pass
+        elif len(self.date.get()) > 10:
+            messagebox.showerror("Error", "Fecha no valida")
+        else:
+            self.cursor.execute(f"UPDATE Alumnos SET  Fecha_Ingreso='{self.date.get()}' WHERE Id_Alumno='{id}'")
+
+        if self.department.get() == "":
+            pass
+        elif len(self.department.get()) > 64:
+            messagebox.showerror("Error", "Ocurrio un error con Departamento, deben ser maximo 64 caracteres")
+        else:
+            self.cursor.execute(f"UPDATE Alumnos SET Departamento='{self.department.get()}' WHERE Id_Alumno='{id}'" )
+
+        if self.address.get() == "":
+            pass
+        elif len(self.address.get()) > 64:
+            messagebox.showerror("Error", "Ocurrio un error con Dirección, deben ser maximo 64 caracteres")
+        else:
+            self.cursor.execute(f"UPDATE Alumnos SET Dirección='{self.address.get()}' WHERE Id_Alumno='{id}'" ) 
+
+        if self.cellphone.get() == "":
+            pass
+        elif len(self.cellphone.get()) != 9:
+            messagebox.showerror("Error", "Ocurrio un error con Teléfono Celular, deben ser 9 caracteres")
+        else:
+            try:
+                if int(self.cellphone.get()) < 0:
+                    messagebox.showerror("Error", "Ocurrio un error con Teléfono  Celular, deben ser números postivos")
+                else:
+                    self.cursor.execute(f"UPDATE Alumnos SET Telef_Cel='{self.cellphone.get()}' WHERE Id_Alumno='{id}'" )
+            except ValueError:
+                messagebox.showerror("Error", "Ocurrio un error con Teléfono Celular, deben ser números unicamente")
+
+        if self.phone.get() == "":
+            pass
+        elif len(self.phone.get()) != 10:
+            messagebox.showerror("Error", "Ocurrio un error con Teléfono  Fijo, deben ser 10 caracteres")
+        else:
+            try:
+                if int(self.phone.get()) < 0:
+                    messagebox.showerror("Error", "Ocurrio un error con Teléfono  Fijo, deben ser números postivos")
+                else:           
+                    self.cursor.execute(f"UPDATE Alumnos SET Telef_Fijo='{self.phone.get()}' WHERE Id_Alumno='{id}'" )
+            except ValueError:
+                messagebox.showerror("Error", "Ocurrio un error con Teléfono Fijo, deben ser números unicamente")
+   
+        self.connection.commit()
+        self.cursor.close()
+
 
     def config_db (self):
         self.connection = sqlite3.connect(self.db_path)
@@ -392,15 +598,6 @@ class Inscripciones_2:
             self.connection.commit()
 
         self.cursor.close()
-
-    def numero_de_registro(self):
-        self.cursor = self.connection.cursor()
-        num_alumnos = 'SELECT * FROM Alumnos;'  
-        self.cursor.execute(num_alumnos) 
-        cantidad = len(self.cursor.fetchall())
-        id_registro = cantidad + 1
-        self.cursor.close()
-        return id_registro    
 
     def __get_element_by_id (self, element_table: str, element_id, id_config: dict) -> tuple():
         self.cursor = self.connection.cursor()
@@ -599,69 +796,6 @@ class Inscripciones_2:
             raise sqlite3.DataError(f"NO RECORDS AVAILABLE WITH QUERY: {filters}")
 
         return records
-    
-    def set_all(self, nombres: str, apellidos: str, id: str, fecha: str, ciudad: str, departamento: str, direccion: str, cel: str, fijo: str):
-        self.cursor = self.connection.cursor()
-        all = f"UPDATE Alumnos SET Nombres= '{nombres}', Apellidos='{apellidos}', Fecha_Ingreso='{fecha}',Ciudad='{ciudad}',Departamento='{departamento}', Dirección='{direccion}',  Telef_Cel'={cel}', Telef_Fijo'={fijo}'   WHERE Id_Alumno='{id}'" 
-        self.cursor.execute(all)
-        self.connection.commit()
-        self.cursor.close()
-
-    def set_name(self, id, nombres: str):
-        self.cursor = self.connection.cursor()
-        name = f"UPDATE Alumnos SET Nombres= '{nombres}'WHERE Id_Alumno='{id}'" 
-        self.cursor.execute(name)
-        self.connection.commit()
-        self.cursor.close()
-    
-    def set_lastname(self, id, apellidos: str):
-        self.cursor = self.connection.cursor()
-        lastname = f"UPDATE Alumnos SET Apellidos= '{apellidos}'WHERE Id_Alumno='{id}'" 
-        self.cursor.execute(lastname)
-        self.connection.commit()
-        self.cursor.close()
-    
-    def set_date(self, id, fecha: str):
-        self.cursor = self.connection.cursor()
-        date = f"UPDATE Alumnos SET  Fecha_Ingreso='{fecha}' WHERE Id_Alumno='{id}'" 
-        self.cursor.execute(date)
-        self.connection.commit()
-        self.cursor.close()
-    
-    def set_city(self, id, ciudad: str):
-        self.cursor = self.connection.cursor()
-        city = f"UPDATE Alumnos SET Ciudad='{ciudad}' WHERE Id_Alumno='{id}'" 
-        self.cursor.execute(city)
-        self.connection.commit()
-        self.cursor.close()
-    
-    def set_department(self, id, departamento: str):
-        self.cursor = self.connection.cursor()
-        department = f"UPDATE Alumnos SET Departamento='{departamento}' WHERE Id_Alumno='{id}'" 
-        self.cursor.execute(department)
-        self.connection.commit()
-        self.cursor.close()
-    
-    def set_adress(self, id, direccion: str):
-        self.cursor = self.connection.cursor()
-        adress = f"UPDATE Alumnos SET Dirección='{direccion}' WHERE Id_Alumno='{id}'" 
-        self.cursor.execute(adress)
-        self.connection.commit()
-        self.cursor.close()
-    
-    def set_cel(self, id, cel: str):
-        self.cursor = self.connection.cursor()
-        nokia= f"UPDATE Alumnos SET Telef_Cel='{cel}' WHERE Id_Alumno='{id}'" 
-        self.cursor.execute(nokia)
-        self.connection.commit()
-        self.cursor.close()
-    
-    def set_phone(self, id, fijo: str):
-        self.cursor = self.connection.cursor()
-        phone = f"UPDATE Alumnos SET Telef_Fijo'={fijo}' WHERE Id_Alumno='{id}'" 
-        self.cursor.execute(phone)
-        self.connection.commit()
-        self.cursor.close()
 
     def set_inscripcion(self, student_id: str, course_code: str, inscripcion_date: str, course_schedule: str):
         self.cursor = self.connection.cursor()
@@ -679,8 +813,8 @@ class Inscripciones_2:
         student_id = self.cmbx_Id_Alumno.get()
 
         datos = self.get_student_by_id(student_id)
-        nombres_Alu= datos[2]
-        apellidos_Alu = datos[3]
+        nombres_Alu= datos[3]
+        apellidos_Alu = datos[2]
         ##modificamos los entry de nombres y apellidos
         self.apellido_Alumno.set(nombres_Alu)
         self.nombre_Alumno.set(apellidos_Alu)
