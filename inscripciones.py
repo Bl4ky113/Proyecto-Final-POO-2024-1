@@ -99,6 +99,8 @@ class Inscripciones_2:
         self.fecha = ttk.Entry(self.frm_1, name="fecha",textvariable=self.fecha_value)
         self.fecha.configure(justify="center")
         self.fecha.place(anchor="nw", width=90, x=680, y=80)
+        self.fecha.bind("<FocusOut>", self.validar_fecha)
+
 
         #Label Alumno
         self.lblIdAlumno = ttk.Label(self.frm_1, name="lblidalumno")
