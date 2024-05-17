@@ -162,7 +162,8 @@ class Inscripciones_2:
         self.lblHorario.place(anchor="nw", x=635, y=185)
 
         #Entry del Horario
-        self.horario = ttk.Entry(self.frm_1, name="entry3")
+        self.value_horario= tk.StringVar()
+        self.horario = ttk.Entry(self.frm_1, name="entry3",textvariable=self.value_horario)
         self.horario.configure(justify="left", width=166)
         self.horario.place(anchor="nw", width=100, x=690, y=185)
 
@@ -685,10 +686,10 @@ class Inscripciones_2:
         self.connection.commit()
         self.cursor.close()
 
-    def set_inscripcion(self,id,cod_Curso,fecha_i):
+    def set_inscripcion(self,id,cod_Curso,fecha_i,horario):
         self.cursor= self.connection.cursor()
-        query = "INSERT INTO Inscritos (Id_Alumno, Código_Curso, Fecha_Inscripción) VALUES (?, ?, ?)"
-        inscripcion = (id, cod_Curso, fecha_i)
+        query = "INSERT INTO Inscritos (Id_Alumno, Código_Curso,Horario, Fecha_Inscripción) VALUES (?, ?, ?,?)"
+        inscripcion = (id, cod_Curso, horario,fecha_i)
         self.cursor.execute(query,inscripcion)
         self.connection.commit()
         self.cursor.close()
@@ -824,7 +825,12 @@ class Inscripciones_2:
         if not fecha:
             messagebox.showerror("Error", "Por favor  digita la fecha")
             return 
-        self.set_inscripcion(id_estudiante,cod_curso,fecha)
+        horario= self.value_horario.get()
+        if not horario:
+            messagebox.showerror("Error", "Por favor digite un horario")
+            return
+        
+        self.set_inscripcion(id_estudiante,cod_curso,fecha,horario)
         messagebox.showinfo("Completado","La inscripción se guardo con exito")
         
     def delete_inscriptions (self):
