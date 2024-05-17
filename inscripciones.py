@@ -146,9 +146,9 @@ class Inscripciones_2:
         self.lblDscCurso.place(anchor="nw", x=275, y=185)
 
         #Entry de Descripción del Curso 
-        self.lista_Cursos = ttk.Combobox(self.frm_1,name="cmbx_cursos",values=self.cursosbox())
-        self.lista_Cursos.place(anchor="nw", width=300, x=325, y=185)
-        #self.lista_Cursos.bind("<<ComboboxSelected>>",self.completar_datos_Curso)
+        self.cmbx_Cursos = ttk.Combobox(self.frm_1,name="cmbx_cursos",values=self.cursosbox())
+        self.cmbx_Cursos.place(anchor="nw", width=300, x=325, y=185)
+        self.cmbx_Cursos.bind("<<ComboboxSelected>>",self.autocompletar_datos_Curso)
         """
         self.nombre_del_curso= tk.StringVar()
         self.descripc_Curso = ttk.Entry(self.frm_1, name="descripc_curso",textvariable=self.nombre_del_curso)
@@ -405,39 +405,6 @@ class Inscripciones_2:
 
         return element
 
-    def get_course_by_description(self, course_description: str) -> tuple:
-        course = self.__get_element_by_description(
-            'courses',
-            course_description,
-            {
-                "min": 1,  # Ajusta estos valores según las restricciones reales
-                "max": 255,  # Ajusta estos valores según las restricciones reales
-                "label": "Descripción_Curso"
-            }
-        )
-
-        if not course:
-            raise sqlite3.DataError(f"COURSE WITH DESCRIPTION: {course_description} NOT FOUND")
-
-        return course
-    
-
-    def get_course_by_description(self, course_description: str) -> tuple:
-        course = self.__get_element_by_description(
-            'courses',
-            course_description,
-            {
-                "min": 1,  # Ajusta estos valores según las restricciones reales
-                "max": 255,  # Ajusta estos valores según las restricciones reales
-                "label": "Descripción_Curso"
-            }
-        )
-
-        if not course:
-            raise sqlite3.DataError(f"COURSE WITH DESCRIPTION: {course_description} NOT FOUND")
-
-        return course
-    
     def __get_all_elements (self, element_table: str) -> list(tuple()):
         self.cursor = self.connection.cursor()
         element_table_str = self.db_tables[element_table]
@@ -552,7 +519,7 @@ class Inscripciones_2:
             raise sqlite3.DataError(f"NO STUDENTS AVAILABLE WITH QUERY: {filters}")
 
         return students
-
+    
     def get_course_by_id (self, course_id: str) -> tuple([str, str, str, int]):
         course = self.__get_element_by_id(
             'courses',
@@ -569,7 +536,6 @@ class Inscripciones_2:
 
         return course
 
-    
     def get_courses (self, filters: dict={}) -> list(tuple([str, str, str, int])):
         if (len(filters.keys()) == 0):
             courses = self.__get_all_elements('courses')
@@ -618,6 +584,44 @@ class Inscripciones_2:
 
         return records
     
+
+    def __get_element_by_description(self, element_table: str, description: str, id_config: dict) -> tuple:
+        self.cursor = self.connection.cursor()
+        element_table_str = self.db_tables[element_table]
+
+        if element_table not in self.db_tables.keys():
+            raise sqlite3.DataError(f"ELEMENT TABLE: {element_table} NOT AVAILABLE")
+
+        if not (id_config["min"] <= len(description) <= id_config["max"]):
+            raise sqlite3.OperationalError(f'DESCRIPTION LENGTH INCORRECT: must be between {id_config["min"]} and {id_config["max"]} characters')
+        
+        # Usamos una consulta parametrizada para evitar SQL injection
+        self.cursor.execute(f"SELECT * FROM {element_table_str} WHERE {id_config['label']} = ?", (description,))
+        element = self.cursor.fetchone()
+
+        self.cursor.close()
+
+        logger.log(100, f"FETCHED '{element_table_str}' ELEMENT WITH DESCRIPTION '{description}'")
+
+        return element
+
+    def get_course_by_description(self, course_description: str) -> tuple:
+            course = self.__get_element_by_description(
+                'courses',
+                course_description,
+                {
+                    "min": 1,  # Ajusta estos valores según las restricciones reales
+                    "max": 255,  # Ajusta estos valores según las restricciones reales
+                    "label": "Descripción_Curso"
+                }
+            )
+
+            if not course:
+                raise sqlite3.DataError(f"COURSE WITH DESCRIPTION: {course_description} NOT FOUND")
+
+            return course   
+
+
     def set_all(self, nombres: str, apellidos: str, id: str, fecha: str, ciudad: str, departamento: str, direccion: str, cel: str, fijo: str):
         self.cursor = self.connection.cursor()
         all = f"UPDATE Alumnos SET Nombres= '{nombres}', Apellidos='{apellidos}', Fecha_Ingreso='{fecha}',Ciudad='{ciudad}',Departamento='{departamento}', Dirección='{direccion}',  Telef_Cel'={cel}', Telef_Fijo'={fijo}'   WHERE Id_Alumno='{id}'" 
@@ -761,12 +765,7 @@ class Inscripciones_2:
         self.cursor.close()
         courses = [curso[0] for curso in courses]
         return courses
-        
-        
-    def add_cursos_to_treeview (self):
-        cursos=self.tView.get_children()
-        for curso in cursos:
-            self.tView.delete(curso)
+
     def add_records_to_treeview (self, record_filter={}) -> None:
         treeview_records = self.tView.get_children()
         for record in treeview_records:
@@ -794,12 +793,14 @@ class Inscripciones_2:
             )
 
         return
+    
 
-    def autocompletar_curso(self, event):
-        seleccion= self.tView.focus()
-        datos_curso= self.tView.item(seleccion,'values')
-        self.valor_id.set(datos_curso[0])
-        self.nombre_del_curso.set(datos_curso[1])       
+    def autocompletar_datos_Curso(self,event):
+        curso_name= self.cmbx_Cursos.get()
+        datos = self.get_course_by_description(curso_name)
+        id_curso= datos[0]
+
+        self.valor_id.set(id_curso)
 
     def __highlight_btns (self, buttons): 
         pass
@@ -815,7 +816,7 @@ class Inscripciones_2:
             messagebox.showerror("Error","Por favor selecciona un ID")
             return 
         cod_curso= self.valor_id.get()
-        nom_curso= self.nombre_del_curso.get()
+        nom_curso= self.cmbx_Cursos.get()
         if not cod_curso or not nom_curso:
             messagebox.showerror("Error","Por favor selecciona un curso")
             return
