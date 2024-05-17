@@ -585,44 +585,6 @@ class Inscripciones_2:
 
         return records
     
-
-    def __get_element_by_description(self, element_table: str, description: str, id_config: dict) -> tuple:
-        self.cursor = self.connection.cursor()
-        element_table_str = self.db_tables[element_table]
-
-        if element_table not in self.db_tables.keys():
-            raise sqlite3.DataError(f"ELEMENT TABLE: {element_table} NOT AVAILABLE")
-
-        if not (id_config["min"] <= len(description) <= id_config["max"]):
-            raise sqlite3.OperationalError(f'DESCRIPTION LENGTH INCORRECT: must be between {id_config["min"]} and {id_config["max"]} characters')
-        
-        # Usamos una consulta parametrizada para evitar SQL injection
-        self.cursor.execute(f"SELECT * FROM {element_table_str} WHERE {id_config['label']} = ?", (description,))
-        element = self.cursor.fetchone()
-
-        self.cursor.close()
-
-        logger.log(100, f"FETCHED '{element_table_str}' ELEMENT WITH DESCRIPTION '{description}'")
-
-        return element
-
-    def get_course_by_description(self, course_description: str) -> tuple:
-            course = self.__get_element_by_description(
-                'courses',
-                course_description,
-                {
-                    "min": 1,  # Ajusta estos valores según las restricciones reales
-                    "max": 255,  # Ajusta estos valores según las restricciones reales
-                    "label": "Descripción_Curso"
-                }
-            )
-
-            if not course:
-                raise sqlite3.DataError(f"COURSE WITH DESCRIPTION: {course_description} NOT FOUND")
-
-            return course   
-
-
     def set_all(self, nombres: str, apellidos: str, id: str, fecha: str, ciudad: str, departamento: str, direccion: str, cel: str, fijo: str):
         self.cursor = self.connection.cursor()
         all = f"UPDATE Alumnos SET Nombres= '{nombres}', Apellidos='{apellidos}', Fecha_Ingreso='{fecha}',Ciudad='{ciudad}',Departamento='{departamento}', Dirección='{direccion}',  Telef_Cel'={cel}', Telef_Fijo'={fijo}'   WHERE Id_Alumno='{id}'" 
@@ -686,13 +648,16 @@ class Inscripciones_2:
         self.connection.commit()
         self.cursor.close()
 
-    def set_inscripcion(self,id,cod_Curso,fecha_i,horario):
-        self.cursor= self.connection.cursor()
-        query = "INSERT INTO Inscritos (Id_Alumno, Código_Curso,Horario, Fecha_Inscripción) VALUES (?, ?, ?,?)"
-        inscripcion = (id, cod_Curso, horario,fecha_i)
-        self.cursor.execute(query,inscripcion)
+    def set_inscripcion(self, student_id: str, course_code: str, inscripcion_date: str, course_schedule: str):
+        self.cursor = self.connection.cursor()
+
+        query = "INSERT INTO Inscritos (Id_Alumno, Código_Curso, Horario, Fecha_Inscripción) VALUES (?, ?, ?, ?)"
+        new_record_data = (student_id, course_code, course_schedule, inscripcion_date)
+        self.cursor.execute(query, new_record_data)
+
         self.connection.commit()
         self.cursor.close()
+        return
 
     ## autocompleta el nombre yy el apellido esta conectado al combobox
     def autocompletar_nombre(self,event):
@@ -797,11 +762,11 @@ class Inscripciones_2:
     
 
     def autocompletar_datos_Curso(self,event):
-        curso_name= self.cmbx_Cursos.get()
-        datos = self.get_course_by_description(curso_name)
-        id_curso= datos[0]
+        course_name = self.cmbx_Cursos.get()
+        course_data = self.get_courses({"Descripción_Curso": course_name})[0]
 
-        self.valor_id.set(id_curso)
+        self.valor_id.set(course_data[0])
+        return
 
     def __highlight_btns (self, buttons): 
         pass
@@ -812,33 +777,32 @@ class Inscripciones_2:
         ## Falta agregar la funcion del horario, ya que no esta en la database
         ## asi podemos completar esta funcion.
         ## no se como lo vamos a manejar, asi que lo dejo asi por ahora
-        id_estudiante= self.cmbx_Id_Alumno.get()
+
+        id_estudiante = self.cmbx_Id_Alumno.get()
         if not id_estudiante:
-            messagebox.showerror("Error","Por favor selecciona un ID")
+            messagebox.showerror("Error","Por favor selecciona un ID de algún Alumno")
             return 
-        cod_curso= self.valor_id.get()
-        nom_curso= self.cmbx_Cursos.get()
+        cod_curso = self.valor_id.get()
+        nom_curso = self.cmbx_Cursos.get()
         if not cod_curso or not nom_curso:
             messagebox.showerror("Error","Por favor selecciona un curso")
             return
-        fecha=self.fecha_value.get()
+        fecha = self.fecha_value.get()
         if not fecha:
-            messagebox.showerror("Error", "Por favor  digita la fecha")
+            messagebox.showerror("Error", "Por favor digita la fecha del registro")
             return 
-        horario= self.value_horario.get()
-        if not horario:
-            messagebox.showerror("Error", "Por favor digite un horario")
+
+        horario_curso = self.horario.get()
+        if not horario_curso:
+            messagebox.showerror("Error", "Por favor ingrese el horario del curso a inscribir")
             return
         
-        self.set_inscripcion(id_estudiante,cod_curso,fecha,horario)
+        self.set_inscripcion(id_estudiante, cod_curso, fecha, horario_curso)
+        self.add_records_to_treeview()
+
         messagebox.showinfo("Completado","La inscripción se guardo con exito")
         
     def delete_inscriptions (self):
-        """
-            
-        """
-
-        print(self.tView.selection())
         pass
             
 if __name__ == "__main__":
