@@ -324,7 +324,7 @@ class Inscripciones_2:
                 self.fecha_value.set(fecha + '/')
                 # Move cursor to the end of the entry
                 self.fecha.icursor(len(self.fecha_value.get()))
-
+                      
     def validate_hour (self, value):
         if re.fullmatch(r"\d{1,2}:\d\d", value) is None:
             return False
@@ -1262,13 +1262,7 @@ class Inscripciones_2:
         return records_data
 
     def grabar_inscripcion(self):
-        """
-            aca solo se graba los datos que piden actualmente la tabla de inscritos
-            la fecha, el id del estudiante y el id del curso
-            Falta agregar la funcion del horario, ya que no esta en la database
-            asi podemos completar esta funcion.
-            no se como lo vamos a manejar, asi que lo dejo asi por ahora
-        """
+        
 
         id_estudiante = self.cmbx_Id_Alumno.get()
         if not id_estudiante:
@@ -1296,6 +1290,8 @@ class Inscripciones_2:
         self.add_records_to_treeview()
 
         messagebox.showinfo("Completado","La inscripción se guardo con exito")
+
+        return
         
     def handle_delete_records (self):
         records_selected = self.__get_selected_records()
