@@ -51,7 +51,8 @@ class Inscripciones_2:
         "query",
         "save",
         "edit",
-        "delete"
+        "delete",
+        "dialog-open"
     )
 
     def __init__(self, master=None):
@@ -180,14 +181,28 @@ class Inscripciones_2:
 
         #Label Horario
         self.lblHorario = ttk.Label(self.frm_1, name="label3")
-        self.lblHorario.configure(background="#f7f9fd",state="normal",text='Hora:')
+        self.lblHorario.configure(background="#f7f9fd",state="normal",text='Horario:')
         self.lblHorario.place(anchor="nw", x=635, y=185)
 
         #Entry del Horario
-        self.value_horario= tk.StringVar()
-        self.horario = ttk.Entry(self.frm_1, name="entry3",textvariable=self.value_horario)
-        self.horario.configure(justify="left", width=166)
-        self.horario.place(anchor="nw", width=100, x=690, y=185)
+        self.schedule_variable = tk.StringVar()
+        self.horario = ttk.Entry(
+            self.frm_1,
+            name="entry3",
+            state="disabled",
+            textvariable=self.schedule_variable
+        )
+        self.horario.configure(
+            justify="left",
+            width=166
+        )
+        self.horario.place(
+            anchor="nw",
+            width=100,
+            x=690,
+            y=185
+        )
+        self.horario.bind("<Button-1>", lambda event: self.open_schedule_dialog(self.schedule_variable))
 
         ''' Botones  de la Aplicación'''
         ## algo de color
@@ -220,7 +235,7 @@ class Inscripciones_2:
 
         #Botón Cancelar
         self.btnCancelar = ttk.Button(self.frm_1, name=self.btn_names[4])
-        self.btnCancelar.configure(text='Cancelar', command= self.reniciar_Registro)
+        self.btnCancelar.configure(text='Cancelar', command= self.cancel_Record)
         self.btnCancelar.place(anchor="nw", x=550, y=260)
 
         #Botón Editar plus
@@ -310,15 +325,31 @@ class Inscripciones_2:
                 # Move cursor to the end of the entry
                 self.fecha.icursor(len(self.fecha_value.get()))
 
-    def reniciar_Registro(self):
+    def validate_hour (self, value):
+        if re.fullmatch(r"\d{1,2}:\d\d", value) is None:
+            return False
+        
+        return True
+
+    def cancel_Record (self):
+        # No action active 
+        self.current_action = "" 
+
+        # highlight all btns
+        self.__highlight_btns(self.btn_names)
+
+        # UnSelect all records in treeView
+        self.tView.selection_remove(self.tView.selection())
+
         self.num_InscripcionVar.set(self.numero_de_registro())
         self.fecha_value.set("")
         self.apellido_Alumno.set("")
         self.nombre_Alumno.set("")
         self.cmbx_Cursos.set("")
         self.valor_id.set("")
-        self.value_horario.set("")
+        self.schedule_variable.set("")
         self.cmbx_Id_Alumno.set("")
+
         try:
             self.habilitar(self.mini)
         except:
@@ -1020,6 +1051,154 @@ class Inscripciones_2:
         record[3] = days_str + ' de ' + hours_str # 3rd index is 'Horario'
         return record
 
+    def open_schedule_dialog (self, return_variable):
+        """
+            Abre un Toplevel donde se puede elegir el horario,
+            se ingresa los días y horas del horario para poder generarlo.
+            Lanza errores no-fatales al usuario si no se cuenta con días o horas validas.
+            Retorna en 'return_variable' el resultado de la generación en formato de horario.
+        """
+
+        # Functions inside the schedule_dialog so the main class doesn't have to 
+        # keep the dialog logic
+
+        def get_days_schedule ():
+            days_str = ""
+
+            for i, day in enumerate(days_list):
+                if not day["var"].get():
+                    continue
+
+                days_str += day["value"]
+
+            if not days_str:
+                messagebox.showerror("Error", "Tiene que elegir almenos un día para el horario")
+
+            return days_str
+
+        def get_hours_schedule ():
+            hours_str = ""
+            start_hour = start_hour_entry.get()
+            end_hour = end_hour_entry.get()
+
+            if not self.validate_hour(start_hour):
+                messagebox.showerror("Error", "El formato de la fecha inicial del horario esta mal")
+                return hours_str
+
+            if not self.validate_hour(end_hour):
+                messagebox.showerror("Error", "El formato de la fecha final del horario esta mal")
+                return hours_str
+
+            hours_str = start_hour + '-' + end_hour
+            return hours_str
+
+        def generate_schedule ():
+            schedule_str = ""
+            hours_str = ""
+            days_str = ""
+
+            days_str = get_days_schedule()
+            if not days_str:
+                return 
+
+            hours_str = get_hours_schedule()
+            if not hours_str:
+                return
+
+            schedule_str += days_str + ';' + hours_str
+            return_variable.set(schedule_str)
+            self.close_schedule_dialog()
+            return
+
+        if self.current_action == self.available_actions[4]:
+            return
+
+        self.current_action = self.available_actions[4]
+        self.__highlight_btns([])
+        
+        self.schedule_dialog = tk.Toplevel(pady=32)
+        self.schedule_dialog.title("Generar Horario de Inscripción")
+        self.schedule_dialog.protocol("WM_DELETE_WINDOW", self.close_schedule_dialog)
+
+        days_list = [
+            { "text": "Lunes", "value": "M", "var": tk.BooleanVar(self.schedule_dialog, name="monday", value=False)},
+            { "text": "Martes", "value": "T", "var": tk.BooleanVar(self.schedule_dialog, name="tuesday", value=False)},
+            { "text": "Miércoles", "value": "W", "var": tk.BooleanVar(self.schedule_dialog, name="wednesday", value=False)},
+            { "text": "Jueves", "value": "H", "var": tk.BooleanVar(self.schedule_dialog, name="thursday", value=False)},
+            { "text": "Viernes", "value": "F", "var": tk.BooleanVar(self.schedule_dialog, name="friday", value=False)},
+            { "text": "Sábado", "value": "S", "var": tk.BooleanVar(self.schedule_dialog, name="saturday", value=False)},
+            { "text": "Domingo", "value": "U", "var": tk.BooleanVar(self.schedule_dialog, name="sunday", value=False)},
+        ]
+
+        label_days = tk.Label(self.schedule_dialog, text="Días del horario")
+        label_days.pack(
+            anchor="w",
+            ipadx=32,
+            ipady=8
+        )
+        frame_days = tk.Frame(
+            self.schedule_dialog,
+            padx=32,
+            pady=8
+        )
+        frame_days.pack(anchor="w")
+
+        for day in days_list:
+            dayCheck = ttk.Checkbutton(
+                frame_days,
+                text=day["text"],
+                variable=day["var"]
+            )
+            dayCheck.pack(
+                anchor="w",
+                side="left",
+                fill="none"
+            )
+
+        label_hours = tk.Label(self.schedule_dialog, text="Hora del horario")
+        label_hours.pack(
+            anchor="w",
+            ipadx=32,
+            ipady=8
+        )
+        frame_hours = tk.Frame(
+            self.schedule_dialog,
+            padx=32,
+            pady=8
+        )
+        frame_hours.pack(anchor="center", side="top")
+
+        start_hour_label = tk.Label(frame_hours, text="Inicio: ", justify="left")
+        start_hour_label.pack(anchor="center", side="left")
+        start_hour_entry = tk.Entry(frame_hours, width=5)
+        start_hour_entry.pack(anchor="center", side="left", padx=8)
+
+        end_hour_label = tk.Label(frame_hours, text="Fin: ", justify="left")
+        end_hour_label.pack(anchor="center", side="left")
+        end_hour_entry = tk.Entry(frame_hours, width=5)
+        end_hour_entry.pack(anchor="center", side="left", padx=8)
+
+        frame_generate_btns = tk.Frame(
+            self.schedule_dialog,
+            padx=64,
+            pady=8
+        )
+        frame_generate_btns.pack(anchor="center", side="bottom")
+        generate_btn = tk.Button(frame_generate_btns, text="Generar Horario", command=generate_schedule)
+        generate_btn.pack(anchor="center", side="left", padx=16)
+        cancel_btn = tk.Button(frame_generate_btns, text="Cancelar", command=self.close_schedule_dialog)
+        cancel_btn.pack(anchor="center", side="left", padx=16)
+        
+        return
+
+    def close_schedule_dialog (self):
+        self.current_action = ""
+        self.__highlight_btns(self.btn_names)
+
+        self.schedule_dialog.destroy()
+        del self.schedule_dialog
+        return
+
     def idcbox (self):
         students_ids = self.get_students({}, "Id_Alumno")
         students_ids = [ids[0] for ids in students_ids ]
@@ -1067,11 +1246,11 @@ class Inscripciones_2:
 
     def __highlight_btns (self, buttons_to_highlight):
         for btn_name in self.btn_names:
-            if btn_name in buttons_to_highlight:
-                continue
-            
             btn = self.frm_1.nametowidget(btn_name)
             btn["state"] = "disabled"
+
+            if btn_name in buttons_to_highlight:
+                btn["state"] = "normal"
 
     def __get_selected_records (self):
         rows_id = self.tView.selection()
@@ -1130,14 +1309,14 @@ class Inscripciones_2:
             return self.delete_records_by_selection(records_selected)
 
     def delete_records_by_selection (self, records_selected, no_dialog=False):
-        dialog_msg = "¿Esta seguro de eliminar %s?"
-
-        if len(records_selected) > 1:
-            dialog_msg = dialog_msg % "los registros seleccionados"
-        else:
-            dialog_msg = dialog_msg % "el registro seleccionado"
-
         if not no_dialog:
+            dialog_msg = "¿Esta seguro de eliminar %s?"
+
+            if len(records_selected) > 1:
+                dialog_msg = dialog_msg % "los registros seleccionados"
+            else:
+                dialog_msg = dialog_msg % "el registro seleccionado"
+
             if not messagebox.askokcancel("Eliminar Inscripciones", dialog_msg):
                 return
 
