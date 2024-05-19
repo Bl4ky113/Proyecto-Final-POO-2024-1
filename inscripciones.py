@@ -619,9 +619,9 @@ class Inscripciones_2:
         return column_name_str
 
     def __check_only_column_names_in_list (self, table_name: str, column_name_list: typing.Iterable[str]) -> bool:
-        self.cursor = self.connection.cursor()
         table_name_str = self.db_tables[table_name]
 
+        self.cursor = self.connection.cursor()
         self.cursor.execute(f"SELECT name FROM pragma_table_info(?) as table_info", (table_name_str, ))
         table_columns = [column_tuple[0] for column_tuple in self.cursor.fetchall()]
 
@@ -633,16 +633,13 @@ class Inscripciones_2:
         return True
 
     def __get_element_by_id (self, element_table: str, element_id, id_config: dict, *columns_to_get: str) -> tuple():
-        self.cursor = self.connection.cursor()
         element_table_str = self.db_tables[element_table]
         columns_to_get_str = self.__generate_columns_to_get_string(element_table, columns_to_get)
-
-        if element_table not in self.db_tables.keys():
-            raise sqlite3.DataError(f"ELEMENT TABLE: {element_table} NOT AVAILABLE")
 
         if id_config["min"] > len(element_id) and len(element_id) > id_config["max"]:
             raise sqlite3.OperationalError('ID LENGHT INCORRECT')
 
+        self.cursor = self.connection.cursor()
         self.cursor.execute(f"SELECT {columns_to_get_str} FROM {element_table_str} WHERE {id_config['label']}=?", (element_id, ))
         element = self.cursor.fetchone()
 
@@ -653,13 +650,13 @@ class Inscripciones_2:
         return element
 
     def __get_all_elements (self, element_table: str, *columns_to_get: str) -> list(tuple()):
-        self.cursor = self.connection.cursor()
         element_table_str = self.db_tables[element_table]
         columns_to_get_str = self.__generate_columns_to_get_string(element_table, columns_to_get)
 
         if element_table not in self.db_tables.keys():
             raise sqlite3.DataError(f"ELEMENT TABLE: {element_table} IS NOT A VALID TABLE")
 
+        self.cursor = self.connection.cursor()
         self.cursor.execute(f"SELECT {columns_to_get_str} FROM {element_table_str}")
         elements = self.cursor.fetchall()
 
@@ -670,7 +667,6 @@ class Inscripciones_2:
         return elements
 
     def __get_elements_with_query (self, element_table: str, *columns_to_get: str, **filters) -> list(tuple()):
-        self.cursor = self.connection.cursor()
         element_table_str = self.db_tables[element_table]
         columns_to_get_str = self.__generate_columns_to_get_string(element_table, columns_to_get)
         query_values = []
@@ -679,7 +675,8 @@ class Inscripciones_2:
         if len(filters.keys()) <= 0:
             raise sqlite3.OperationalError('NO FILTERS AVAILABLE')
 
-        self.__check_only_column_names_in_list(element_table, filters.keys())
+        if not self.__check_only_column_names_in_list(element_table, filters.keys()):
+            raise sqlite3.OperationalError(f'COLUMN NAMES TO FILTER NOT AVAILABLE IN {table_name_str} TABLE')
         
         for i, filter_key in enumerate(filters.keys()):
             if i != 0:
@@ -693,6 +690,7 @@ class Inscripciones_2:
         if not query_str:
             raise sqlite3.OperationalError('NO VALID FILTERS PASSED IN QUERY')
 
+        self.cursor = self.connection.cursor()
         self.cursor.execute(f"SELECT {columns_to_get_str} FROM {element_table_str} WHERE {query_str}", query_values)
         elements = self.cursor.fetchall()
 
@@ -702,6 +700,19 @@ class Inscripciones_2:
         logger.log(100, f"FETCHED '{element_table_str}' ELEMENT USING '{query_str}' QUERY")
         
         return elements
+
+    def __delete_element_by_id (self, element_table: str, element_id: str, id_config: dict) -> bool:
+        element_table_str = self.db_tables[element_table]
+
+        if id_config["min"] > len(element_id) and len(element_id) > id_config["max"]:
+            raise sqlite3.OperationalError('ID LENGHT INCORRECT')
+
+        self.cursor = self.connection.cursor()
+        self.cursor.execute(f"DELETE FROM {element_table_str} WHERE {id_config['label']} = ?", (element_id, ))
+        self.cursor.close()
+
+        logger.log(100, f"DELETED '{element_table_str}' ELEMENT WITH ID '{element_id}'")
+        return True
 
     def get_career_by_id (self, career_id: str, *columns_to_get: str) -> tuple([str, str, int]):
         career = self.__get_element_by_id(
@@ -716,7 +727,7 @@ class Inscripciones_2:
         )
 
         if not career:
-            raise sqlite3.DataError(f"CAREER WITH ID: {career_id} NOT FOUND")
+            raise sqlite3.DataError(f"CAREER WITH ID '{career_id}' NOT FOUND")
 
         return career
                        
@@ -736,6 +747,22 @@ class Inscripciones_2:
         
         return careers
 
+    def delete_career_by_id (self, career_id: str) -> bool:
+        career_deleted = self.__delete_element_by_id(
+            'careers',
+            career_id,
+            {
+                "min": 4,
+                "max": 16,
+                "label": "Código_Carrera"
+            }
+        )
+
+        if not career_deleted:
+            raise sqlite3.DataError(f"ERROR DELETING CAREER WITH ID '{career_id}'")
+
+        return True
+
     def get_student_by_id (self, student_id: str, *columns_to_get: str) -> tuple([str, str, str, str, str, str, str, str, str, str]):
         student = self.__get_element_by_id(
             'students',
@@ -743,13 +770,13 @@ class Inscripciones_2:
             {
                 "min": 16,
                 "max": 16,
-                "label": "Id_Alumno"
+                "label": "id_alumno"
             },
             *columns_to_get 
         )
 
         if not student:
-            raise sqlite3.DataError(f"STUDENT WITH ID: {student_id} NOT FOUND")
+            raise sqlite3.dataerror(f"STUDENT WITH ID '{student_id}' NOT FOUND")
 
         return student
 
@@ -768,6 +795,22 @@ class Inscripciones_2:
             raise sqlite3.DataError(f"NO STUDENTS AVAILABLE WITH QUERY: {filters}")
 
         return students
+
+    def delete_student_by_id (self, student_id: str) -> bool:
+        student_deleted = self.__delete_element_by_id(
+            'students',
+            student_id,
+            {
+                "min": 16,
+                "max": 16,
+                "label": "id_alumno"
+            }
+        )
+
+        if not student_deleted:
+            raise sqlite3.dataerror(f"ERROR DELETING STUDENT WITH ID: {student_id}")
+
+        return True
     
     def get_course_by_id (self, course_id: str, *columns_to_get: str) -> tuple([str, str, str, int]):
         course = self.__get_element_by_id(
@@ -782,7 +825,7 @@ class Inscripciones_2:
         )
 
         if not course:
-            raise sqlite3.DataError(f"COURSE WITH ID: {course_id} NOT FOUND")
+            raise sqlite3.DataError(f"COURSE WITH ID '{course_id}' NOT FOUND")
 
         return course
 
@@ -802,6 +845,22 @@ class Inscripciones_2:
 
         return courses
 
+    def delete_course_by_id (self, course_id: str) -> bool:
+        course_deleted = self.__get_element_by_id(
+            'courses',
+            course_id,
+            {
+                "min": 7,
+                "max": 7,
+                "label": "Código_Curso"
+            }
+        )
+
+        if not course_deleted:
+            raise sqlite3.DataError(f"ERROR DELETING COURSE WITH ID '{course_id}'")
+
+        return True
+
     def get_record_by_id (self, record_id: str, *columns_to_get) -> tuple([str, str, str, str, str]):
         record = self.__get_element_by_id(
             'records',
@@ -815,7 +874,7 @@ class Inscripciones_2:
         )
 
         if not record:
-            raise sqlite3.DataError(f"RECORD WITH ID: {record_id} NOT FOUND")
+            raise sqlite3.DataError(f"RECORD WITH ID '{record_id}' NOT FOUND")
 
         return record
 
@@ -834,6 +893,22 @@ class Inscripciones_2:
             raise sqlite3.DataError(f"NO RECORDS AVAILABLE WITH QUERY: {filters}")
 
         return records
+
+    def get_record_by_id (self, record_id: str) -> bool:
+        record_deleted = self.__get_element_by_id(
+            'records',
+            record_id,
+            {
+                "min": 16,
+                "max": 16,
+                "label": "Id_Alumno"
+            }
+        )
+
+        if not record_deleted:
+            raise sqlite3.DataError(f"ERROR DELETING RECORD WITH ID '{record_id}'")
+
+        return record_deleted
 
     def set_inscripcion(self, student_id: str, course_code: str, inscripcion_date: str, course_schedule: str):
         self.cursor = self.connection.cursor()
