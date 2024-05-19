@@ -119,7 +119,7 @@ class Inscripciones_2:
         self.fecha = ttk.Entry(self.frm_1, name="fecha",textvariable=self.fecha_value)
         self.fecha.configure(justify="center")
         self.fecha.place(anchor="nw", width=90, x=680, y=80)
-        self.fecha.bind("<FocusOut>", self.validar_fecha)
+        self.fecha.bind("<KeyRelease>", self.autocompletar_slash)
 
         #Label Alumno
         self.lblIdAlumno = ttk.Label(self.frm_1, name="lblidalumno")
@@ -168,7 +168,7 @@ class Inscripciones_2:
         self.lblDscCurso.place(anchor="nw", x=275, y=185)
 
         #Entry de Descripción del Curso 
-        self.cmbx_Cursos = ttk.Combobox(self.frm_1,name="cmbx_cursos",values=self.cursosbox())
+        self.cmbx_Cursos = ttk.Combobox(self.frm_1,name="cmbx_cursos",values=self.cursosbox(),state="readonly")
         self.cmbx_Cursos.place(anchor="nw", width=300, x=325, y=185)
         self.cmbx_Cursos.bind("<<ComboboxSelected>>",self.autocompletar_datos_Curso)
         """
@@ -264,14 +264,18 @@ class Inscripciones_2:
         self.tView.place(anchor="nw", height=300, width=790, x=4, y=290)
 
         #Scrollbars
-        self.scroll_H = ttk.Scrollbar(self.frm_1, name="scroll_h")
+        self.scroll_H = ttk.Scrollbar(self.frm_1, name="scroll_h", command=self.tView.xview)
         self.scroll_H.configure(orient="horizontal")  
-        self.scroll_H.place(anchor="s", height=12, width=1534, x=15, y=595)
-        self.scroll_Y = ttk.Scrollbar(self.frm_1, name="scroll_y")
+        self.scroll_H.place(anchor="s", height=15, width=774, x=400, y=590)
+        self.scroll_Y = ttk.Scrollbar(self.frm_1, name="scroll_y",command=self.tView.yview)
         self.scroll_Y.configure(orient="vertical")
         self.scroll_Y.place(anchor="s", height=275, width=12, x=790, y=582)
+        
         self.frm_1.pack(side="top")
         self.frm_1.pack_propagate(0)
+        
+        # Configurar las barras de desplazamiento para el Treeview
+        self.tView.configure(xscrollcommand=self.scroll_H.set, yscrollcommand=self.scroll_Y.set)
 
         # Main widget
         self.mainwindow = self.win
@@ -286,18 +290,25 @@ class Inscripciones_2:
 
         return centrado
     
-    def validar_fecha(self, event):
+    def validar_fecha(self):
         fecha_ingresada = self.fecha.get()
         formato_valido = re.match(r'\d{2}/\d{2}/\d{4}', fecha_ingresada)
         if formato_valido:
             dia, mes, anio = map(int, fecha_ingresada.split('/'))
             try:
                 calendar.datetime.datetime(anio, mes, dia)
-                pass
+                return True
             except ValueError:
-                messagebox.showerror("Error", "La fecha ingresada no es válida")
+                return False
         else:
-            messagebox.showerror("Error", "No se cakreko el formato esta mal")
+            return False
+    def autocompletar_slash(self, event):
+        fecha = self.fecha_value.get()
+        if len(fecha) == 2 or len(fecha) == 5:
+            if fecha[-1] != '/':
+                self.fecha_value.set(fecha + '/')
+                # Move cursor to the end of the entry
+                self.fecha.icursor(len(self.fecha_value.get()))
 
     def reniciar_Registro(self):
         self.num_InscripcionVar.set(self.numero_de_registro())
@@ -610,7 +621,18 @@ class Inscripciones_2:
                     ("5399046924785948", "2518", "Juan", "Morales", "2024-01-01", "Bogotá", "5432109876"),
                     ("1722202291005220", "2879", "Andres", "hernandez", "2024-05-05", "Medellin", "0000000000"),
                     ("4274203119662378", "2545", "Laura", "Moreno", "2023-08-01", "Fusagasuga", "1132432433"),
-                    ("1827391938728989", "2879", "Nicolas", "Corredor", "2023-08-01", "Bogotá", "1353515989");
+                    ("1827391938728989", "2879", "Nicolas", "Corredor", "2023-08-01", "Bogotá", "1353515989"),
+                    ("32458769", "2518", "María", "González", "2023-02-15", "Cali", "9876543210"),
+                    ("56789012", "2933", "Ana", "Martínez", "2018-08-20", "Medellín", "6789012345"),
+                    ("98765432", "2879", "Pedro", "López", "2021-08-10", "Bogotá", "4567890123"),
+                    ("34567890", "2545", "Sofía", "Ramírez", "2022-08-25", "Barranquilla", "8901234567"),
+                    ("89012345", "2518", "Carlos", "Gómez", "2020-08-05", "Cartagena", "7890123456"),
+                    ("12345678", "2879", "Daniela", "Herrera", "2023-08-12", "Bucaramanga", "6789012345"),
+                    ("45678901", "2933", "Diego", "Jiménez", "2021-08-30", "Cúcuta", "5678901234"),
+                    ("78901234", "2545", "Valentina", "Díaz", "2018-08-08", "Santa Marta", "4567890123"),
+                    ("90123456", "2879", "Lucas", "Sánchez", "2023-08-18", "Pereira", "3456789012"),
+                    ("23456789", "2518", "Mariana", "Torres", "2019-08-02", "Manizales", "2345678901");
+
             ''')
 
             seed_done = True
@@ -1080,8 +1102,11 @@ class Inscripciones_2:
             return
         fecha = self.fecha_value.get()
         if not fecha:
-            messagebox.showerror("Error", "Por favor digita la fecha del registro")
-            return 
+            messagebox.showerror("Error","Digite una fecha")
+            return
+        if not self.validar_fecha():
+            messagebox.showerror("Error", "Por favor digita correctamente la fecha del registro")
+            return
 
         horario_curso = self.horario.get()
         if not horario_curso:
