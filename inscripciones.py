@@ -849,7 +849,7 @@ class Inscripciones_2:
         return courses
 
     def delete_course_by_id (self, course_id: str) -> bool:
-        course_deleted = self.__get_element_by_id(
+        course_deleted = self.__delete_element_by_id(
             'courses',
             course_id,
             {
