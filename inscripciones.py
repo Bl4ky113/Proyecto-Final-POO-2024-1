@@ -14,7 +14,7 @@ from  tkinter import messagebox
 logger = logging.getLogger(__name__)
 
 class Inscripciones_2:
-    # db variables
+    # db constants
     db_path = "Inscripciones.db"
     connection: sqlite3.Connection
     cursor: sqlite3.Cursor
@@ -26,6 +26,7 @@ class Inscripciones_2:
         "records": "Inscritos"
     }
 
+    # Schedule constants
     days_labels = {
         "M": "Lunes",
         "T": "Martes",
@@ -35,6 +36,23 @@ class Inscripciones_2:
         "S": "Sábado",
         "U": "Domingo"
     }
+
+    # Tk Constants
+    btn_names = (
+        "btnConsultar",
+        "btnGuardar",
+        "btnEditar",
+        "btnEliminar",
+        "btnCancelar"
+    )
+
+    current_action = ""
+    available_actions = (
+        "query",
+        "save",
+        "edit",
+        "delete"
+    )
 
     def __init__(self, master=None):
         self.config_db()
@@ -177,31 +195,31 @@ class Inscripciones_2:
         self.style.configure('TButton', background='#85C1E9', foreground='black')
 
         #Boton Consultar
-        self.btnConsultar= ttk.Button(self.frm_1,name="btnConsultar")
+        self.btnConsultar= ttk.Button(self.frm_1, name=self.btn_names[0])
         self.btnConsultar.configure(text='Consultar')
         self.btnConsultar.place(anchor="nw",x=150,y=260)
 
         #Botón Guardar
-        self.btnGuardar = ttk.Button(self.frm_1, name="btnguardar" ,command=self.grabar_inscripcion)
+        self.btnGuardar = ttk.Button(self.frm_1, name=self.btn_names[1] ,command=self.grabar_inscripcion)
         self.btnGuardar.configure(text='Guardar')
         self.btnGuardar.place(anchor="nw", x=250, y=260)
         
         #Botón Editar 
-        self.btnEditar = ttk.Button(self.frm_1, name="btneditar")
+        self.btnEditar = ttk.Button(self.frm_1, name=self.btn_names[2])
         self.btnEditar.configure(text='Editar')
         self.btnEditar.place(anchor="nw", x=350, y=260)
 
         #Botón Eliminar
         self.btnEliminar = ttk.Button(
             self.frm_1, 
-            name="btneliminar",
-            command=self.delete_records
+            name=self.btn_names[3],
+            command=self.handle_delete_records
         )
         self.btnEliminar.configure(text='Eliminar')
         self.btnEliminar.place(anchor="nw", x=450, y=260)
 
         #Botón Cancelar
-        self.btnCancelar = ttk.Button(self.frm_1, name="btncancelar")
+        self.btnCancelar = ttk.Button(self.frm_1, name=self.btn_names[4])
         self.btnCancelar.configure(text='Cancelar', command= self.reniciar_Registro)
         self.btnCancelar.place(anchor="nw", x=550, y=260)
 
@@ -1025,8 +1043,13 @@ class Inscripciones_2:
         self.valor_id.set(course_data[0])
         return
 
-    def __highlight_btns (self, buttons): 
-        pass
+    def __highlight_btns (self, buttons_to_highlight):
+        for btn_name in self.btn_names:
+            if btn_name in buttons_to_highlight:
+                continue
+            
+            btn = self.frm_1.nametowidget(btn_name)
+            btn["state"] = "disabled"
 
     def __get_selected_records (self):
         rows_id = self.tView.selection()
@@ -1070,21 +1093,38 @@ class Inscripciones_2:
 
         messagebox.showinfo("Completado","La inscripción se guardo con exito")
         
-    def delete_records (self):
+    def handle_delete_records (self):
         records_selected = self.__get_selected_records()
 
-        if len(records_selected) <= 0:
-            messagebox.showerror("Error", "Seleccione uno o más registros a eliminar")
-            return
+        if self.current_action == self.available_actions[3]:
+            return self.delete_records_by_selection(records_selected, no_dialog=True)
 
-        if not messagebox.askokcancel("Eliminar Inscripciones", "¿Esta seguro de elimnar las inscripciones seleccionadas?"):
-            return
+        if len(records_selected) <= 0:
+            return self.delete_records_by_action()
+        else:
+            return self.delete_records_by_selection(records_selected)
+
+    def delete_records_by_selection (self, records_selected, no_dialog=False):
+        dialog_msg = "¿Esta seguro de eliminar %s?"
+
+        if len(records_selected) > 1:
+            dialog_msg = dialog_msg % "los registros seleccionados"
+        else:
+            dialog_msg = dialog_msg % "el registro seleccionado"
+
+        if not no_dialog:
+            if not messagebox.askokcancel("Eliminar Inscripciones", dialog_msg):
+                return
 
         for record in records_selected:
             self.delete_record_by_id(record[0])
 
         self.add_records_to_treeview()
         return
+
+    def delete_records_by_action (self):
+        self.__highlight_btns((self.btn_names[3], self.btn_names[4]))
+        self.current_action = self.available_actions[3]
 
 if __name__ == "__main__":
     app = Inscripciones_2()
