@@ -2,9 +2,10 @@
 
 import sqlite3
 import logging
+import calendar
+import typing
 import re
 import os
-import calendar
 
 import tkinter as tk
 import tkinter.ttk as ttk
@@ -599,17 +600,50 @@ class Inscripciones_2:
 
         self.cursor.close()
 
-    def __get_element_by_id (self, element_table: str, element_id, id_config: dict) -> tuple():
+    def __generate_columns_to_get_string (self, table_name: str, column_name_list: typing.Iterable[str]) -> str:
+        column_name_str = ""
+
+        if (len(column_name_list) <= 0):
+            return "*" # ALL BY DEFAULT
+        
+        if (not self.__check_only_column_names_in_list(table_name, column_name_list)):
+            table_name_str = self.db_tables[table_name]
+            raise sqlite3.OperationalError(f'COLUMN NAMES TO GET NOT AVAILABLE IN {table_name_str} TABLE')
+
+        for i, column_name in enumerate(column_name_list):
+            if i != 0 and i != len(column_name_list):
+                column_name_str += ', '
+
+            column_name_str += column_name
+
+        return column_name_str
+
+    def __check_only_column_names_in_list (self, table_name: str, column_name_list: typing.Iterable[str]) -> bool:
+        self.cursor = self.connection.cursor()
+        table_name_str = self.db_tables[table_name]
+
+        self.cursor.execute(f"SELECT name FROM pragma_table_info(?) as table_info", (table_name_str, ))
+        table_columns = [column_tuple[0] for column_tuple in self.cursor.fetchall()]
+
+        for column_name in column_name_list:
+            if (column_name not in table_columns):
+                logger.warning(f"FILTER '{filter_key}' NOT IN {element_table_str} SCHEMA")
+                return False
+
+        return True
+
+    def __get_element_by_id (self, element_table: str, element_id, id_config: dict, *columns_to_get: str) -> tuple():
         self.cursor = self.connection.cursor()
         element_table_str = self.db_tables[element_table]
+        columns_to_get_str = self.__generate_columns_to_get_string(element_table, columns_to_get)
 
         if element_table not in self.db_tables.keys():
             raise sqlite3.DataError(f"ELEMENT TABLE: {element_table} NOT AVAILABLE")
 
         if id_config["min"] > len(element_id) and len(element_id) > id_config["max"]:
             raise sqlite3.OperationalError('ID LENGHT INCORRECT')
-        
-        self.cursor.execute(f"SELECT * FROM {element_table_str} WHERE {id_config['label']}={element_id}")
+
+        self.cursor.execute(f"SELECT {columns_to_get_str} FROM {element_table_str} WHERE {id_config['label']}=?", (element_id, ))
         element = self.cursor.fetchone()
 
         self.cursor.close()
@@ -618,14 +652,15 @@ class Inscripciones_2:
 
         return element
 
-    def __get_all_elements (self, element_table: str) -> list(tuple()):
+    def __get_all_elements (self, element_table: str, *columns_to_get: str) -> list(tuple()):
         self.cursor = self.connection.cursor()
         element_table_str = self.db_tables[element_table]
+        columns_to_get_str = self.__generate_columns_to_get_string(element_table, columns_to_get)
 
         if element_table not in self.db_tables.keys():
             raise sqlite3.DataError(f"ELEMENT TABLE: {element_table} IS NOT A VALID TABLE")
 
-        self.cursor.execute(f"SELECT * FROM {element_table_str}")
+        self.cursor.execute(f"SELECT {columns_to_get_str} FROM {element_table_str}")
         elements = self.cursor.fetchall()
 
         self.cursor.close()
@@ -634,42 +669,41 @@ class Inscripciones_2:
 
         return elements
 
-    def __get_elements_with_query (self, element_table, **filters) -> list(tuple()):
+    def __get_elements_with_query (self, element_table: str, *columns_to_get: str, **filters) -> list(tuple()):
         self.cursor = self.connection.cursor()
         element_table_str = self.db_tables[element_table]
+        columns_to_get_str = self.__generate_columns_to_get_string(element_table, columns_to_get)
+        query_values = []
         query_str = ''
 
         if len(filters.keys()) <= 0:
             raise sqlite3.OperationalError('NO FILTERS AVAILABLE')
 
-        self.cursor.execute(f"SELECT name FROM pragma_table_info(\"{element_table_str}\") AS table_info")
-        table_columns = [column_tuple[0] for column_tuple in self.cursor.fetchall()]
+        self.__check_only_column_names_in_list(element_table, filters.keys())
         
         for i, filter_key in enumerate(filters.keys()):
-            if (filter_key not in table_columns):
-                logger.warning(f"FILTER '{filter_key}' NOT IN {element_table_str} SCHEMA")
-                continue
-
             if i != 0:
                 query_str += " AND "
 
             filter_value = filters[filter_key]
             
-            query_str += f"\"{filter_key}\"=\"{filter_value}\""
+            query_str += f"\"{filter_key}\"=?"
+            query_values.append(filter_value)
 
         if not query_str:
             raise sqlite3.OperationalError('NO VALID FILTERS PASSED IN QUERY')
 
-        self.cursor.execute(f"SELECT * FROM {element_table_str} WHERE {query_str}")
+        self.cursor.execute(f"SELECT {columns_to_get_str} FROM {element_table_str} WHERE {query_str}", query_values)
         elements = self.cursor.fetchall()
 
         self.cursor.close()
 
+        # Part of this log is broken, but the change made is really more helpfull than this
         logger.log(100, f"FETCHED '{element_table_str}' ELEMENT USING '{query_str}' QUERY")
         
         return elements
 
-    def get_career_by_id (self, career_id: str) -> tuple([str, str, int]):
+    def get_career_by_id (self, career_id: str, *columns_to_get: str) -> tuple([str, str, int]):
         career = self.__get_element_by_id(
             'careers',
             career_id,
@@ -677,7 +711,8 @@ class Inscripciones_2:
                 "min": 4,
                 "max": 16,
                 "label": "Código_Carrera"
-            }
+            },
+            *columns_to_get
         )
 
         if not career:
@@ -685,23 +720,23 @@ class Inscripciones_2:
 
         return career
                        
-    def get_careers (self, filters: dict={}) -> list(tuple([str, str, int])):
+    def get_careers (self, filters: dict={}, *columns_to_get: str) -> list(tuple([str, str, int])):
         if (len(filters.keys()) == 0):
-            careers = self.__get_all_elements('careers')
+            careers = self.__get_all_elements('careers', *columns_to_get)
 
             if len(careers) <= 0:
                 raise sqlite3.DataError('NO CAREERS AVAILABLE')
 
             return careers
         
-        careers = self.__get_elements_with_query('careers', **filters)
+        careers = self.__get_elements_with_query('careers', *columns_to_get, **filters)
 
         if len(careers) <= 0:
             raise sqlite3.DataError(f"NO CAREERS AVAILABLE WITH QUERY: {filters}")
         
         return careers
 
-    def get_student_by_id (self, student_id: str) -> tuple([str, str, str, str, str, str, str, str, str, str]):
+    def get_student_by_id (self, student_id: str, *columns_to_get: str) -> tuple([str, str, str, str, str, str, str, str, str, str]):
         student = self.__get_element_by_id(
             'students',
             student_id,
@@ -709,7 +744,8 @@ class Inscripciones_2:
                 "min": 16,
                 "max": 16,
                 "label": "Id_Alumno"
-            }
+            },
+            *columns_to_get 
         )
 
         if not student:
@@ -717,23 +753,23 @@ class Inscripciones_2:
 
         return student
 
-    def get_students (self, filters: dict={}) -> list(tuple([str, str, str, str, str, str, str, str, str, str])):
+    def get_students (self, filters: dict={}, *columns_to_get: str) -> list(tuple([str, str, str, str, str, str, str, str, str, str])):
         if (len(filters.keys()) == 0):
-            students = self.__get_all_elements('students')
+            students = self.__get_all_elements('students', *columns_to_get)
 
             if len(students) <= 0:
                 raise sqlite3.DataError('NO STUDENTS AVAILABLE')
 
             return students
 
-        students = self.__get_elements_with_query('students', **filters)
+        students = self.__get_elements_with_query('students', *columns_to_get, **filters)
 
         if len(students) <= 0:
             raise sqlite3.DataError(f"NO STUDENTS AVAILABLE WITH QUERY: {filters}")
 
         return students
     
-    def get_course_by_id (self, course_id: str) -> tuple([str, str, str, int]):
+    def get_course_by_id (self, course_id: str, *columns_to_get: str) -> tuple([str, str, str, int]):
         course = self.__get_element_by_id(
             'courses',
             course_id,
@@ -741,7 +777,8 @@ class Inscripciones_2:
                 "min": 7,
                 "max": 7,
                 "label": "Código_Curso"
-            }
+            },
+            *columns_to_get
         )
 
         if not course:
@@ -749,23 +786,23 @@ class Inscripciones_2:
 
         return course
 
-    def get_courses (self, filters: dict={}) -> list(tuple([str, str, str, int])):
+    def get_courses (self, filters: dict={}, *columns_to_get: str) -> list(tuple([str, str, str, int])):
         if (len(filters.keys()) == 0):
-            courses = self.__get_all_elements('courses')
+            courses = self.__get_all_elements('courses', *columns_to_get)
 
             if len(courses) <= 0:
                 raise sqlite3.DataError('NO COURSES AVAILABLE')
 
             return courses
 
-        courses = self.__get_elements_with_query('courses', **filters)
+        courses = self.__get_elements_with_query('courses', *columns_to_get, **filters)
 
         if len(courses) <= 0:
             raise sqlite3.DataError(f"NO COURSES AVAILABLE WITH QUERY: {filters}")
 
         return courses
 
-    def get_record_by_id (self, record_id: str) -> tuple([str, str, str, str, str]):
+    def get_record_by_id (self, record_id: str, *columns_to_get) -> tuple([str, str, str, str, str]):
         record = self.__get_element_by_id(
             'records',
             record_id,
@@ -773,7 +810,8 @@ class Inscripciones_2:
                 "min": 16,
                 "max": 16,
                 "label": "Id_Alumno"
-            }
+            },
+            *columns_to_get
         )
 
         if not record:
@@ -781,16 +819,16 @@ class Inscripciones_2:
 
         return record
 
-    def get_records (self, filters: dict={}) -> list(tuple([str, str, str, str, str])):
+    def get_records (self, filters: dict={}, *columns_to_get) -> list(tuple([str, str, str, str, str])):
         if (len(filters.keys()) == 0):
-            records = self.__get_all_elements('records')
+            records = self.__get_all_elements('records', *columns_to_get)
 
             if len(records) <= 0:
                 raise sqlite3.DataError('NO RECORDS AVAILABLE')
 
             return records
 
-        records = self.__get_elements_with_query('records', **filters)
+        records = self.__get_elements_with_query('records', *columns_to_get, **filters)
 
         if len(records) <= 0:
             raise sqlite3.DataError(f"NO RECORDS AVAILABLE WITH QUERY: {filters}")
@@ -864,22 +902,15 @@ class Inscripciones_2:
         record[3] = days_str + ' de ' + hours_str # 3rd index is 'Horario'
         return record
 
-    def idcbox(self):
-        self.cursor = self.connection.cursor()
-        self.cursor.execute(f"SELECT Id_Alumno FROM Alumnos")
-        elements = self.cursor.fetchall()
-        
-        self.cursor.close()   
-        elements= [ids[0] for ids in elements ]
-        return elements  
+    def idcbox (self):
+        students_ids = self.get_students({}, "Id_Alumno")
+        students_ids = [ids[0] for ids in students_ids ]
+        return students_ids
     
     def cursosbox(self):
-        self.cursor = self.connection.cursor()
-        self.cursor.execute(f"SELECT Descripción_Curso FROM Cursos")
-        courses = self.cursor.fetchall()
-        self.cursor.close()
-        courses = [curso[0] for curso in courses]
-        return courses
+        courses_names = self.get_courses({}, 'Descripción_Curso')
+        courses_names = [curso[0] for curso in courses_names]
+        return courses_names
 
     def add_records_to_treeview (self, record_filter={}) -> None:
         treeview_records = self.tView.get_children()
@@ -904,7 +935,7 @@ class Inscripciones_2:
                 0,
                 'end',
                 text="Actualmente",
-                values=("no"," hay", "ningún registro")
+                values=("no"," hay", "ningún", "registro")
             )
 
         return
@@ -912,7 +943,7 @@ class Inscripciones_2:
 
     def autocompletar_datos_Curso(self,event):
         course_name = self.cmbx_Cursos.get()
-        course_data = self.get_courses({"Descripción_Curso": course_name})[0]
+        course_data = self.get_courses({"Descripción_Curso": course_name}, "Código_Curso")[0]
 
         self.valor_id.set(course_data[0])
         return
@@ -921,11 +952,13 @@ class Inscripciones_2:
         pass
 
     def grabar_inscripcion(self):
-        ## aca solo se graba los datos que piden actualmente la tabla de inscritos
-        # la fecha, el id del estudiante y el id del curso
-        ## Falta agregar la funcion del horario, ya que no esta en la database
-        ## asi podemos completar esta funcion.
-        ## no se como lo vamos a manejar, asi que lo dejo asi por ahora
+        """
+            aca solo se graba los datos que piden actualmente la tabla de inscritos
+            la fecha, el id del estudiante y el id del curso
+            Falta agregar la funcion del horario, ya que no esta en la database
+            asi podemos completar esta funcion.
+            no se como lo vamos a manejar, asi que lo dejo asi por ahora
+        """
 
         id_estudiante = self.cmbx_Id_Alumno.get()
         if not id_estudiante:
