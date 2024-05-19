@@ -195,7 +195,7 @@ class Inscripciones_2:
         self.btnEliminar = ttk.Button(
             self.frm_1, 
             name="btneliminar",
-            command=self.delete_inscriptions
+            command=self.delete_records
         )
         self.btnEliminar.configure(text='Eliminar')
         self.btnEliminar.place(anchor="nw", x=450, y=260)
@@ -221,7 +221,7 @@ class Inscripciones_2:
         self.tView.configure(selectmode="extended")
         #self.tView.bind("<ButtonRelease-1>", self.autocompletar_curso)
         #Columnas del Treeview
-        tView_cols = ['Id_Alumno','Código_Curso', 'Horario', 'Fecha_Inscripción']
+        tView_cols = ['No_Inscripción', 'Id_Alumno','Código_Curso', 'Horario', 'Fecha_Inscripción']
         self.tView.configure(
             columns=tView_cols,
             displaycolumns=tView_cols,
@@ -229,17 +229,19 @@ class Inscripciones_2:
             padding=10
         )
         
-        self.tView.column("#0", anchor="w", width=50)
-        self.tView.column(tView_cols[0], anchor="w", width=100)
+        self.tView.column("#0", width=0, stretch="no")
+        self.tView.column(tView_cols[0], anchor="w", width=50)
         self.tView.column(tView_cols[1], anchor="w", width=100)
-        self.tView.column(tView_cols[2], anchor="w", width=200)
-        self.tView.column(tView_cols[3], anchor="w", width=100)
+        self.tView.column(tView_cols[2], anchor="w", width=100)
+        self.tView.column(tView_cols[3], anchor="w", width=200)
+        self.tView.column(tView_cols[4], anchor="w", width=100)
         #Cabeceras
-        self.tView.heading("#0", anchor="w", text="# Registro")
-        self.tView.heading(tView_cols[0], anchor="w", text="Id Alumno")
-        self.tView.heading(tView_cols[1], anchor="w", text="Código Curso")
-        self.tView.heading(tView_cols[2], anchor="w", text="Horario")
-        self.tView.heading(tView_cols[3], anchor="w", text="Fecha Inscripción")
+        self.tView.heading("#0", text="")
+        self.tView.heading(tView_cols[0], anchor="w", text="# Inscripción")
+        self.tView.heading(tView_cols[1], anchor="w", text="Id Alumno")
+        self.tView.heading(tView_cols[2], anchor="w", text="Código Curso")
+        self.tView.heading(tView_cols[3], anchor="w", text="Horario")
+        self.tView.heading(tView_cols[4], anchor="w", text="Fecha Inscripción")
         self.add_records_to_treeview()
         self.tView.place(anchor="nw", height=300, width=790, x=4, y=290)
 
@@ -704,11 +706,12 @@ class Inscripciones_2:
     def __delete_element_by_id (self, element_table: str, element_id: str, id_config: dict) -> bool:
         element_table_str = self.db_tables[element_table]
 
-        if id_config["min"] > len(element_id) and len(element_id) > id_config["max"]:
+        if id_config["min"] > len(str(element_id)) and len(str(element_id)) > id_config["max"]:
             raise sqlite3.OperationalError('ID LENGHT INCORRECT')
 
         self.cursor = self.connection.cursor()
-        self.cursor.execute(f"DELETE FROM {element_table_str} WHERE {id_config['label']} = ?", (element_id, ))
+        self.cursor.execute(f"DELETE FROM {element_table_str} WHERE {id_config['label']} = {element_id}")
+        self.connection.commit()
         self.cursor.close()
 
         logger.log(100, f"DELETED '{element_table_str}' ELEMENT WITH ID '{element_id}'")
@@ -868,7 +871,7 @@ class Inscripciones_2:
             {
                 "min": 16,
                 "max": 16,
-                "label": "Id_Alumno"
+                "label": "No_Inscripción"
             },
             *columns_to_get
         )
@@ -894,14 +897,14 @@ class Inscripciones_2:
 
         return records
 
-    def get_record_by_id (self, record_id: str) -> bool:
-        record_deleted = self.__get_element_by_id(
+    def delete_record_by_id (self, record_id: str) -> bool:
+        record_deleted = self.__delete_element_by_id(
             'records',
             record_id,
             {
                 "min": 16,
                 "max": 16,
-                "label": "Id_Alumno"
+                "label": "No_Inscripción"
             }
         )
 
@@ -1001,8 +1004,7 @@ class Inscripciones_2:
                 self.tView.insert(
                     "",
                     'end',
-                    text=record[0],
-                    values=record[1:]
+                    values=record
                 )
         except sqlite3.DataError as err:
             self.tView.insert(
@@ -1025,6 +1027,15 @@ class Inscripciones_2:
 
     def __highlight_btns (self, buttons): 
         pass
+
+    def __get_selected_records (self):
+        rows_id = self.tView.selection()
+        records_data = []
+
+        for row in rows_id:
+            records_data.append(self.tView.item(row)['values'])
+
+        return records_data
 
     def grabar_inscripcion(self):
         """
@@ -1059,8 +1070,21 @@ class Inscripciones_2:
 
         messagebox.showinfo("Completado","La inscripción se guardo con exito")
         
-    def delete_inscriptions (self):
-        pass
+    def delete_records (self):
+        records_selected = self.__get_selected_records()
+
+        if len(records_selected) <= 0:
+            messagebox.showerror("Error", "Seleccione uno o más registros a eliminar")
+            return
+
+        if not messagebox.askokcancel("Eliminar Inscripciones", "¿Esta seguro de elimnar las inscripciones seleccionadas?"):
+            return
+
+        for record in records_selected:
+            self.delete_record_by_id(record[0])
+
+        self.add_records_to_treeview()
+        return
 
 if __name__ == "__main__":
     app = Inscripciones_2()
