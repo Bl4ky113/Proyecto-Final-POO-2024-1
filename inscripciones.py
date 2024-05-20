@@ -105,9 +105,10 @@ class Inscripciones_2:
 
         #Entry No. Inscripción
         self.num_InscripcionVar = tk.IntVar(value=self.numero_de_registro())
-        self.num_Inscripcion = ttk.Label(self.frm_1, text= self.numero_de_registro(),  name="num_inscripcion")
+        self.num_Inscripcion = ttk.Label(self.frm_1, textvariable = self.num_InscripcionVar ,  name="num_inscripcion")
         self.num_Inscripcion.configure(justify="right")
         self.num_Inscripcion.place(anchor="nw", width=50, x=700, y=45)
+        
         
         #Label Fecha
         
@@ -220,7 +221,7 @@ class Inscripciones_2:
         self.btnGuardar.place(anchor="nw", x=250, y=260)
         
         #Botón Editar 
-        self.btnEditar = ttk.Button(self.frm_1, name=self.btn_names[2])
+        self.btnEditar = ttk.Button(self.frm_1, name=self.btn_names[2], command = self.control_errores_edicion)
         self.btnEditar.configure(text='Editar')
         self.btnEditar.place(anchor="nw", x=350, y=260)
 
@@ -240,7 +241,7 @@ class Inscripciones_2:
 
         #Botón Editar plus
         self.btnEditarplus = ttk.Button(self.frm_1, name="btneditarplus")
-        self.btnEditarplus.configure(text='Editar Alumnos',  command= lambda: self.ventana_secundaria_alumnos(self.cmbx_Id_Alumno.get()))
+        self.btnEditarplus.configure(text='Editar Alumnos',  command= self.ventana_alumnos)
         self.btnEditarplus.place(anchor="nw", x=230, y=78)
 
         #Separador
@@ -297,6 +298,9 @@ class Inscripciones_2:
  
     def run(self):
         self.mainwindow.mainloop()
+    
+    def ventana_alumnos(self):
+        self.ventana_secundaria_alumnos(self.cmbx_Id_Alumno.get())
 
     def centrarVentana(self,w_ventana,h_ventana):
         x_ventana = self.win.winfo_screenwidth() // 2 - w_ventana // 2
@@ -351,34 +355,57 @@ class Inscripciones_2:
         self.cmbx_Id_Alumno.set("")
 
         try:
-            self.habilitar(self.mini)
+            self.habilitar()
         except:
             pass
 
     def numero_de_registro(self):   
         self.cursor = self.connection.cursor()
-        num_alumnos = 'SELECT * FROM Inscritos;'  
-        self.cursor.execute(num_alumnos) 
+        self.cursor.execute("SELECT DISTINCT Id_Alumno FROM Inscritos") 
         cantidad = len(self.cursor.fetchall())
         id_registro = cantidad + 1
         self.cursor.close()
-        return id_registro
+        return id_registro 
     
-    def habilitar(self, ventana):
-        ventana.destroy()
+    def no_registro_estudiante(self, student_id):    
+        self.cursor = self.connection.cursor()  
+        self.cursor.execute("SELECT No_Inscripción FROM Inscritos WHERE Id_Alumno = ?",(student_id,))
+        id = self.cursor.fetchone()
+        self.cursor.close()
+        if id is not None:
+            return id[0]
+        else:
+            return self.numero_de_registro()
+    
+    def habilitar(self):
+        self.mini.destroy()
         self.btnEditarplus["state"] = "normal"
+        self.btnEditar["state"] = "normal"
+        self.btnConsultar["state"] = "normal"
+        self.btnEliminar["state"] = "normal"
+        self.btnGuardar["state"] = "normal"
+    
+    def deshabilitar(self):
+        self.btnEditarplus["state"] = "disabled"
+        self.btnEditar["state"] = "disabled"
+        self.btnConsultar["state"] = "disabled"
+        self.btnEliminar["state"] = "disabled"
+        self.btnGuardar["state"] = "disabled" 
 
     def ventana_secundaria_alumnos(self,id):
+        def btn_guardar_plus():
+            self.setter_alumnos(id)
+
         if id == "":
             messagebox.showerror("Error", "Porfavor, seleccione algun Id")
         else:
-            self.btnEditarplus["state"] = "disabled"    
+            self.deshabilitar()
             self.mini = tk.Toplevel()
             self.mini.resizable(False,False)
             self.mini.title("Edición de datos")
             self.mini.configure(background="#2271b3")
-            self.mini.geometry(self.centrarVentana(460,200))
-            self.mini.protocol("WM_DELETE_WINDOW", lambda: self.habilitar(self.mini))
+            self.mini.geometry(self.centrarVentana(460,160))
+            self.mini.protocol("WM_DELETE_WINDOW", self.habilitar)
             
             #Label nombre
             self.lblname = ttk.Label(self.mini, name="lblname ")
@@ -399,16 +426,16 @@ class Inscripciones_2:
             self.lastname = ttk.Entry(self.mini, name="lastname")
             self.lastname.configure(justify="center")
             self.lastname.place(anchor="nw", width=90, x=90, y=50)
+
+            #Label Dirección
+            self.lbladdress = ttk.Label(self.mini, name="lbladress")
+            self.lbladdress.configure(background="#bfcde6", text='Dirección:')
+            self.lbladdress.place(anchor="nw", x=20, y=80)
     
-            #Label Fecha
-            self.lbldate = ttk.Label(self.mini, name="lbldate")
-            self.lbldate.configure(background="#bfcde6", text='Fecha:')
-            self.lbldate.place(anchor="nw", x=20, y=80)
-    
-            #Entry Fecha
-            self.date = ttk.Entry(self.mini, name="date")
-            self.date.configure(justify="center")
-            self.date.place(anchor="nw", width=90, x=90, y=80)
+            #Entry Dirección
+            self.address = ttk.Entry(self.mini, name="address")
+            self.address.configure(justify="center")
+            self.address.place(anchor="nw", width=90, x=90, y=80)
     
             #Label Ciudad
             self.lblcity = ttk.Label(self.mini, name="lblcity")
@@ -429,16 +456,6 @@ class Inscripciones_2:
             self.department = ttk.Entry(self.mini, name="department")
             self.department.configure(justify="center")
             self.department.place(anchor="nw", width=90, x=340, y=20)
-    
-            #Label Dirección
-            self.lbladdress = ttk.Label(self.mini, name="lbladress")
-            self.lbladdress.configure(background="#bfcde6", text='Dirección:')
-            self.lbladdress.place(anchor="nw", x=240, y=50)
-    
-            #Entry Dirección
-            self.address = ttk.Entry(self.mini, name="address")
-            self.address.configure(justify="center")
-            self.address.place(anchor="nw", width=90, x=340, y=50)
                   
             #Label Cel
             self.lblcellphone = ttk.Label(self.mini, name="lblcellphone")
@@ -453,93 +470,73 @@ class Inscripciones_2:
             #Label Fijo
             self.lblphone = ttk.Label(self.mini, name="lblphone")
             self.lblphone.configure(background="#bfcde6", text='Teléfono Fijo:')
-            self.lblphone.place(anchor="nw", x=240, y= 110)
+            self.lblphone.place(anchor="nw", x=240, y=50)
     
             #Entry Fijo
             self.phone = ttk.Entry(self.mini, name="phone")
             self.phone.configure(justify="center")
-            self.phone.place(anchor="nw", width=90, x=340, y=110)
+            self.phone.place(anchor="nw", width=90, x=340, y=50)
     
             #Botones
-            guardar = ttk.Button(self.mini, text="Guardar", command= lambda: self.setter_alumnos(id))
-            guardar.place(anchor="nw", width=90, x=250, y=160)
+            guardar = ttk.Button(self.mini, text="Guardar", command= btn_guardar_plus)
+            guardar.place(anchor="nw", width=90, x=240, y=115)
     
-            cerrar = ttk.Button(self.mini,text="Cerrar",command = lambda: self.habilitar(self.mini))
-            cerrar.place(x=355,y=160)
+            cerrar = ttk.Button(self.mini,text="Cerrar",command = self.habilitar)
+            cerrar.place(anchor="nw", width=90, x=340,y=115)
 
 
     def setter_alumnos (self,id):
-        self.cursor = self.connection.cursor()    
-        if self.name.get() == "":
-            pass
-        elif len(self.name.get()) > 64:
-            messagebox.showerror("Error", "Ocurrio un error con Nombre, deben ser maximo 64 caracteres")
-        else:
-            self.cursor.execute(f"UPDATE Alumnos SET Nombres= '{self.name.get()}'WHERE Id_Alumno='{id}'" )
+        self.cursor = self.connection.cursor()
+        datos = [self.name.get(),self.lastname.get(),self.place.get(),self.address.get(),self.department.get()]
+        telefonos = [self.cellphone.get(), self.phone.get()]
+
+        for dato in datos:
+            if len(dato) > 64:
+                messagebox.showerror("Error", "Ocurrio un error, deben ser maximo 64 caracteres en los siguientes espacios: Nombre, Apellido, Ciudad, Dirección, Departamento")
+                return
+            else:
+                pass
+            
+        for telefono in telefonos:
+            if len(telefono) != 9 and telefono:
+                messagebox.showerror("Error", "Ocurrio un error, deben ser 9 caracteres en Telefono celular y Telefono fijo")
+                return
+            elif telefono == "":
+                pass
+            else:
+                try:
+                    if int(telefono) < 0:
+                        messagebox.showerror("Error", "Ocurrio un error con Teléfono  Celular, deben ser números postivos")
+                        return
+                except ValueError:
+                    messagebox.showerror("Error", "Ocurrio un error con Teléfono Celular, deben ser números unicamente")
+                    return
+            
+        if self.name.get():
+            self.cursor.execute("UPDATE Alumnos SET Nombres= ? WHERE Id_Alumno=  ?",(self.name.get(),id))
         
-        if self.lastname.get() == "":
-            pass
-        elif len(self.lastname.get()) > 64:
-            messagebox.showerror("Error", "Ocurrio un error con Apellido, deben ser maximo 64 caracteres")
-        else:
-            self.cursor.execute(f"UPDATE Alumnos SET Apellidos= '{self.lastname.get()}'WHERE Id_Alumno='{id}'" )
+        if self.lastname.get():
+            self.cursor.execute("UPDATE Alumnos SET Apellidos= ? WHERE Id_Alumno= ?",(self.lastname.get(),id))
 
-        if self.place.get() == "":
-            pass
-        elif len(self.place.get()) > 64:
-            messagebox.showerror("Error", "Ocurrio un error con Ciudad, deben ser maximo 64 caracteres")
-        else:
-            self.cursor.execute(f"UPDATE Alumnos SET  Ciudad='{self.place.get()}' WHERE Id_Alumno='{id}'")
+        if self.place.get():
+            self.cursor.execute("UPDATE Alumnos SET  Ciudad= ? WHERE Id_Alumno= ?",(self.place.get(),id))
 
-        if self.date.get() == "":
-            pass
-        elif len(self.date.get()) > 10:
-            messagebox.showerror("Error", "Fecha no valida")
-        else:
-            self.cursor.execute(f"UPDATE Alumnos SET  Fecha_Ingreso='{self.date.get()}' WHERE Id_Alumno='{id}'")
+        if self.department.get():
+            self.cursor.execute("UPDATE Alumnos SET Departamento= ? WHERE Id_Alumno= ?",(self.department.get(),id))
 
-        if self.department.get() == "":
-            pass
-        elif len(self.department.get()) > 64:
-            messagebox.showerror("Error", "Ocurrio un error con Departamento, deben ser maximo 64 caracteres")
-        else:
-            self.cursor.execute(f"UPDATE Alumnos SET Departamento='{self.department.get()}' WHERE Id_Alumno='{id}'" )
+        if self.address.get():
+            self.cursor.execute("UPDATE Alumnos SET Dirección= ?  WHERE Id_Alumno= ?", (self.address.get(), id)) 
 
-        if self.address.get() == "":
-            pass
-        elif len(self.address.get()) > 64:
-            messagebox.showerror("Error", "Ocurrio un error con Dirección, deben ser maximo 64 caracteres")
-        else:
-            self.cursor.execute(f"UPDATE Alumnos SET Dirección='{self.address.get()}' WHERE Id_Alumno='{id}'" ) 
+        if self.cellphone.get():
+            self.cursor.execute("UPDATE Alumnos SET Telef_Cel= ? WHERE Id_Alumno= ?",(self.cellphone.get(),id))
 
-        if self.cellphone.get() == "":
-            pass
-        elif len(self.cellphone.get()) != 9:
-            messagebox.showerror("Error", "Ocurrio un error con Teléfono Celular, deben ser 9 caracteres")
-        else:
-            try:
-                if int(self.cellphone.get()) < 0:
-                    messagebox.showerror("Error", "Ocurrio un error con Teléfono  Celular, deben ser números postivos")
-                else:
-                    self.cursor.execute(f"UPDATE Alumnos SET Telef_Cel='{self.cellphone.get()}' WHERE Id_Alumno='{id}'" )
-            except ValueError:
-                messagebox.showerror("Error", "Ocurrio un error con Teléfono Celular, deben ser números unicamente")
-
-        if self.phone.get() == "":
-            pass
-        elif len(self.phone.get()) != 10:
-            messagebox.showerror("Error", "Ocurrio un error con Teléfono  Fijo, deben ser 10 caracteres")
-        else:
-            try:
-                if int(self.phone.get()) < 0:
-                    messagebox.showerror("Error", "Ocurrio un error con Teléfono  Fijo, deben ser números postivos")
-                else:           
-                    self.cursor.execute(f"UPDATE Alumnos SET Telef_Fijo='{self.phone.get()}' WHERE Id_Alumno='{id}'" )
-            except ValueError:
-                messagebox.showerror("Error", "Ocurrio un error con Teléfono Fijo, deben ser números unicamente")
-   
+        if self.phone.get():
+            self.cursor.execute("UPDATE Alumnos SET Telef_Fijo= ? WHERE Id_Alumno= ?",(self.phone.get(),id))
+     
         self.connection.commit()
-        self.cursor.close()
+        self.cursor.close()    
+        messagebox.showinfo("Exito", "Datos actualizados correctamente")
+        self.habilitar()        
 
 
     def config_db (self):
@@ -583,7 +580,7 @@ class Inscripciones_2:
                 PRIMARY KEY (Código_Curso)
             );
             CREATE TABLE IF NOT EXISTS Inscritos (
-                No_Inscripción INTEGER PRIMARY KEY AUTOINCREMENT,
+                No_Inscripción INTEGER,
                 Id_Alumno VARCHAR(32) NOT NULL,
                 Código_Curso VARCHAR(16) NOT NULL,
                 Horario VARCHAR(16) NOT NULL,
@@ -984,11 +981,11 @@ class Inscripciones_2:
 
         return record_deleted
 
-    def set_inscripcion(self, student_id: str, course_code: str, inscripcion_date: str, course_schedule: str):
+    def set_inscripcion(self, record: int, student_id: str, course_code: str, inscripcion_date: str, course_schedule: str):
         self.cursor = self.connection.cursor()
 
-        query = "INSERT INTO Inscritos (Id_Alumno, Código_Curso, Horario, Fecha_Inscripción) VALUES (?, ?, ?, ?)"
-        new_record_data = (student_id, course_code, course_schedule, inscripcion_date)
+        query = "INSERT INTO Inscritos (No_inscripción, Id_Alumno, Código_Curso, Horario, Fecha_Inscripción) VALUES (?, ?, ?, ?, ?)"
+        new_record_data = (record, student_id, course_code, course_schedule, inscripcion_date)
         self.cursor.execute(query, new_record_data)
 
         self.connection.commit()
@@ -998,13 +995,14 @@ class Inscripciones_2:
     ## autocompleta el nombre yy el apellido esta conectado al combobox
     def autocompletar_nombre(self,event):
         student_id = self.cmbx_Id_Alumno.get()
-
+        no_inscripcion = self.no_registro_estudiante(student_id)
         datos = self.get_student_by_id(student_id)
         nombres_Alu= datos[3]
         apellidos_Alu = datos[2]
         ##modificamos los entry de nombres y apellidos
         self.apellido_Alumno.set(nombres_Alu)
         self.nombre_Alumno.set(apellidos_Alu)
+        self.num_InscripcionVar.set(no_inscripcion)
 
     def _format_record_schedule (self, record_tuple):
         """
@@ -1236,11 +1234,9 @@ class Inscripciones_2:
 
         return
     
-
     def autocompletar_datos_Curso(self,event):
         course_name = self.cmbx_Cursos.get()
         course_data = self.get_courses({"Descripción_Curso": course_name}, "Código_Curso")[0]
-
         self.valor_id.set(course_data[0])
         return
 
@@ -1262,8 +1258,7 @@ class Inscripciones_2:
         return records_data
 
     def grabar_inscripcion(self):
-        
-
+    
         id_estudiante = self.cmbx_Id_Alumno.get()
         if not id_estudiante:
             messagebox.showerror("Error","Por favor selecciona un ID de algún Alumno")
@@ -1286,14 +1281,190 @@ class Inscripciones_2:
             messagebox.showerror("Error", "Por favor ingrese el horario del curso a inscribir")
             return
         
-        self.set_inscripcion(id_estudiante, cod_curso, fecha, horario_curso)
+        registro = self.num_InscripcionVar.get()
+        curso_Existe = self.revisar_curso(id_estudiante, cod_curso)
+        if curso_Existe == True:
+            messagebox.showerror("Error","El alumno ya esta tomando este curso")
+            return
+        
+        self.set_inscripcion(registro, id_estudiante, cod_curso, fecha, horario_curso)
         self.add_records_to_treeview()
 
         messagebox.showinfo("Completado","La inscripción se guardo con exito")
 
         return
+    
+    def control_errores_edicion(self):
+            
+            id_Alumno = self.cmbx_Id_Alumno.get() 
+            id_Curso = self.valor_id.get()
+            horario = self.horario.get()
+            fecha = self.fecha_value.get()
+
+            self.cursor= self.connection.cursor()
+            self.cursor.execute("SELECT No_Inscripción FROM Inscritos WHERE Id_Alumno = ?", (id_Alumno,))
+            no_Registro = self.cursor.fetchone()[0]   
+            self.cursor.close()
+            
+            try:
+                existe = self.revisar_horario(id_Alumno, id_Curso, horario)
+                if existe == True:
+                    messagebox.showerror("Error", "Ese alumno ya esta viendo ese curso en ese horario.") 
+                    return 
+                else:
+                    self.distinto_horario(id_Alumno, id_Curso, fecha, horario)
+                    return         
+            except:     
+                pass
+
+            if not id_Curso:
+                messagebox.showerror("Error", "Por favor, seleccione un curso.")
+            elif not horario:
+                messagebox.showerror("Error", "Por favor, ingrese el horario.")
+            elif not fecha:
+                messagebox.showerror("Error", "Por favor, ingrese la fecha.") 
+            else:
+                self.opciones_edicion(no_Registro, id_Alumno, id_Curso, fecha, horario)      
+
+    def distinto_horario(self, id_Alumno, id_Curso, fecha, horario):
+        self.cursor= self.connection.cursor()
+        self.cursor.execute("SELECT Horario FROM Inscritos WHERE Id_Alumno = ? AND Código_Curso = ?", (id_Alumno, id_Curso))
+        horario_Actual = self.cursor.fetchone()[0]
+        self.cursor.execute("SELECT Código_Curso FROM Inscritos WHERE Id_Alumno = ?", (id_Alumno,))
+        materias = self.cursor.fetchall()
+        self.cursor.close()
+    
+        for materia in materias:   
+            if id_Curso == materia[0] and horario_Actual != horario:
+               self.cursor= self.connection.cursor()
+               self.cursor.execute("UPDATE Inscritos SET Fecha_Inscripción = ?, Horario = ? WHERE Id_Alumno = ? AND Horario = ? AND Código_Curso = ?",(fecha, horario, id_Alumno, horario_Actual, id_Curso))
+               self.connection.commit()
+               self.cursor.close()
+               self.add_records_to_treeview()
+               messagebox.showinfo("Exito", "Datos actualizados correctamente")   
+
+    def opciones_edicion(self, No_inscripción: int, student_id: str, course_code: str, inscripcion_date: str, horario: str):
+
+        self.cursor= self.connection.cursor()
+        self.cursor.execute("SELECT No_Inscripción FROM Inscritos WHERE Id_Alumno = ?",(student_id,))
+        cantidad_Registro = len(self.cursor.fetchall())      
+        self.connection.commit()
+        self.cursor.close()  
+        if cantidad_Registro > 1:
+            self.ventana_varios_cursos(No_inscripción)
+        else:  
+            self.editar_inscripcion(No_inscripción, student_id, course_code, inscripcion_date, horario)
+        
+
+    def revisar_curso(self,student_id: int, course_code: str):
+        self.cursor= self.connection.cursor()
+        self.cursor.execute("SELECT Código_Curso FROM Inscritos WHERE Id_Alumno = ?",(student_id,))
+        cursos = self.cursor.fetchall()      
+        self.cursor.close() 
+        for curso in cursos:     
+            if course_code in curso:
+                return True
+    
+    def revisar_horario(self,student_id: int, course_code: str, horario: str):
+        curso_Existe = self.revisar_curso(student_id,course_code)
+        self.cursor= self.connection.cursor()
+        self.cursor.execute("SELECT Horario FROM Inscritos WHERE Id_Alumno = ? AND Código_Curso = ?",(student_id, course_code))
+        horario_Actual = self.cursor.fetchone()  
+        self.cursor.close() 
+        if horario_Actual[0] == horario and curso_Existe == True:
+            return True
+        
+    def editar_inscripcion(self, No_inscripción: int, student_id: str, course_code: str, inscripcion_date: str, horario: str):
+        self.cursor= self.connection.cursor()
+        self.cursor.execute("UPDATE Inscritos SET Id_Alumno = ?, Código_Curso = ?, Fecha_Inscripción = ?, Horario = ? WHERE No_Inscripción = ?",(student_id, course_code, inscripcion_date, horario,No_inscripción)) 
+        self.connection.commit()
+        self.cursor.close()
+        self.add_records_to_treeview()
+        messagebox.showinfo("Exito", "Datos actualizados correctamente")    
+
+    def editar_inscripción_cursos(self):
+        id_Alumno = self.cmbx_Id_Alumno.get() 
+        id_Curso = self.valor_id.get()
+        horario = self.horario.get()
+        fecha = self.fecha_value.get()
+        curso_Actual = self.codigo.get()
+        self.cursor= self.connection.cursor()
+        self.cursor.execute("SELECT No_Inscripción FROM Inscritos WHERE Id_Alumno = ?",(id_Alumno,))
+        no_Registro = self.cursor.fetchone()[0]       
+        self.connection.commit()
+        self.cursor.close()  
+        
+        self.cursor= self.connection.cursor()
+        self.cursor.execute("UPDATE Inscritos SET Id_Alumno = ?, Código_Curso = ?, Fecha_Inscripción = ?, Horario = ? WHERE No_inscripción = ? AND Código_Curso = ?",(id_Alumno, id_Curso, fecha, horario, no_Registro, curso_Actual))
+        self.connection.commit()
+        self.cursor.close()
+        self.add_records_to_treeview()  
+        self.habilitar()
+        messagebox.showinfo("Exito", "Datos actualizados correctamente")
+        
+    
+    def ventana_varios_cursos(self,no_Registro):
+        self.deshabilitar()   
+        self.mini = tk.Toplevel()
+        self.mini.resizable(False,False)
+        self.mini.title("Edición de datos")
+        self.mini.configure(background="#2271b3")
+        self.mini.geometry(self.centrarVentana(425,115))
+        self.mini.protocol("WM_DELETE_WINDOW", self.habilitar) 
+
+        #Label Aviso
+        self.lblinfo = ttk.Label(self.mini, name="lblinfo")
+        self.lblinfo.configure(background="#bfcde6", text='Seleccione el curso que desea reemplazar')
+        self.lblinfo.place(anchor="nw", x=97, y=12)
+
+        #Label Codigo_curso
+        self.lblcodigo = ttk.Label(self.mini, name="lblcodigo")
+        self.lblcodigo.configure(background="#bfcde6", text='Código del curso:')
+        self.lblcodigo.place(anchor="nw", x=20, y=45)
+
+        #Entry Codigo_curso
+        self.codigo= ttk.Combobox(self.mini, name="curse", values=self.codebox(no_Registro),state="readonly")
+        self.codigo.place(anchor="nw", width=140, x=150, y=44)
+        self.codigo.bind("<<ComboboxSelected>>", self.autocompletar_curso_mini)
+        
+        #Label Curso
+        self.lblcurso = ttk.Label(self.mini, name="lblcurso")
+        self.lblcurso.configure(background="#bfcde6", text='Nombre del codigo:')
+        self.lblcurso.place(anchor="nw", x=20, y=75)
+
+        #Entry Curso
+        self.cursotxt = tk.StringVar()
+        self.curso = ttk.Entry(self.mini, name="name", textvariable= self.cursotxt)
+        self.curso.configure(justify="center")
+        self.curso.place(anchor="nw", width=140, x=150, y=74)
+
+        #Botones
+        guardar = ttk.Button(self.mini, text="Guardar", command= self.editar_inscripción_cursos)
+        guardar.place(anchor="nw", width=90, x=315, y=43)
+
+        cerrar = ttk.Button(self.mini,text="Cerrar",command = self.habilitar)
+        cerrar.place(anchor="nw", width=90, x=315,y=73)
+
+    def autocompletar_curso_mini(self,event):
+        self.cursor = self.connection.cursor()
+        entry = self.codigo.get()
+        self.cursor.execute("SELECT Descripción_Curso FROM Cursos WHERE Código_Curso = ?",(entry,))
+        codigo = self.cursor.fetchone()
+        self.cursor.close()
+        curso = codigo[0]
+        self.cursotxt.set(curso)
+        return
+
+    def codebox(self,no_Registro):
+        self.cursor = self.connection.cursor()
+        self.cursor.execute("SELECT Código_Curso FROM Inscritos WHERE No_inscripción = ?",(no_Registro,))
+        codigos = self.cursor.fetchall()
+        self.cursor.close()
+        curso = [curso[0] for curso in codigos]
+        return curso
         
     def handle_delete_records (self):
+        
         records_selected = self.__get_selected_records()
 
         if self.current_action == self.available_actions[3]:
@@ -1303,6 +1474,7 @@ class Inscripciones_2:
             return self.delete_records_by_action()
         else:
             return self.delete_records_by_selection(records_selected)
+        
 
     def delete_records_by_selection (self, records_selected, no_dialog=False):
         if not no_dialog:
@@ -1320,11 +1492,15 @@ class Inscripciones_2:
             self.delete_record_by_id(record[0])
 
         self.add_records_to_treeview()
+        self.cancel_Record()
         return
 
     def delete_records_by_action (self):
         self.__highlight_btns((self.btn_names[3], self.btn_names[4]))
         self.current_action = self.available_actions[3]
+        self.cancel_Record()
+        
+        
 
 if __name__ == "__main__":
     app = Inscripciones_2()
