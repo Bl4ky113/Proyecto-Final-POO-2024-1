@@ -302,7 +302,7 @@ class Inscripciones_2:
             self.handle_delete_records()
             self.cancel_Record()
         except:
-            messagebox.showerror("Error", "Por favor seleccione un dato en el treeview para eliminar")
+            messagebox.showerror("Error", "Por favor, seleccione un dato en el Treeview para eliminar.")
         
         
     def inicial(self):
@@ -500,7 +500,7 @@ class Inscripciones_2:
                     ("2026573", "Introducción a las Ciencias de la Computación y a la Programación", 56),
                     ("2016375", "Programación Orientada a Objetos", 56),
                     ("2016699", "Estructuras de Datos", 56),
-                    ("2016696", "Álgoritmos", 56),
+                    ("2016696", "Algoritmos", 56),
                     ("2016698", "Elementos de Computadores", 56),
                     ("2016707", "Sistemas Operativos", 56);
             ''')
@@ -515,10 +515,10 @@ class Inscripciones_2:
                 INSERT INTO Alumnos
                     (Id_Alumno, Id_Carrera, Nombres, Apellidos, Fecha_Ingreso, Ciudad, Telef_Cel)
                 VALUES
-                    ("78560195", "2933", "Martín", "Hernández", "2023/08/01", "Bogota", "1234567890"),
+                    ("78560195", "2933", "Martín", "Hernández", "2023/08/01", "Bogotá", "1234567890"),
                     ("53990469", "2518", "Juan", "Morales", "2024/01/01", "Bogotá", "5432109876"),
-                    ("17222022", "2879", "Andres", "hernandez", "2024/05/05", "Medellin", "0000000000"),
-                    ("42742031", "2545", "Laura", "Moreno", "2023/08/01", "Fusagasuga", "1132432433"),
+                    ("17222022", "2879", "Andres", "hernandez", "2024/05/05", "Medellín", "0000000000"),
+                    ("42742031", "2545", "Laura", "Moreno", "2023/08/01", "Fusagasugá", "1132432433"),
                     ("18273919", "2879", "Nicolas", "Corredor", "2023/08/01", "Bogotá", "1353515989"),
                     ("32458769", "2518", "María", "González", "2023/02/15", "Cali", "9876543210"),
                     ("56789012", "2933", "Ana", "Martínez", "2018/08/20", "Medellín", "6789012345"),
@@ -940,7 +940,7 @@ class Inscripciones_2:
                 days_str += day["value"]
 
             if not days_str:
-                messagebox.showerror("Error", "Tiene que elegir al menos un día para el horario")
+                messagebox.showerror("Error", "Tiene que elegir al menos un día para el horario.")
 
             return days_str
 
@@ -952,11 +952,11 @@ class Inscripciones_2:
             
 
             if not self.validate_hour(start_hour):
-                messagebox.showerror("Error", "El formato de la fecha inicial del horario esta mal")
+                messagebox.showerror("Error", "El formato de la fecha inicial del horario está mal.")
                 return hours_str
 
             if not self.validate_hour(end_hour):
-                messagebox.showerror("Error", "El formato de la fecha final del horario esta mal")
+                messagebox.showerror("Error", "El formato de la fecha final del horario está mal.")
                 return hours_str
             
             else:
@@ -964,27 +964,27 @@ class Inscripciones_2:
                 final = int(end_hour.replace(":", ""))
 
                 if int(start_hour[3:5]) > 59:
-                    messagebox.showerror("Error", "La hora solo tiene 59 minutos")
+                    messagebox.showerror("Error", "La hora solo puede tener 59 minutos.")
                     return
                 
                 elif int(end_hour[3:5]) > 59:
-                    messagebox.showerror("Error", "La hora solo tiene 59 minutos")
+                    messagebox.showerror("Error", "La hora solo puede tener 59 minutos.")
                     return
 
                 elif inicial > 2359:
-                    messagebox.showerror("Error", "La hora no puede ser mayor a 23:59")
+                    messagebox.showerror("Error", "La hora inicial no puede ser mayor a 23:59.")
                     return
     
                 elif final > 2359:
-                    messagebox.showerror("Error", "La hora no puede ser mayor a 23:59")
+                    messagebox.showerror("Error", "La hora final no puede ser mayor a 23:59.")
                     return
     
                 elif inicial > final:
-                    messagebox.showerror("Error", "La hora inicial no puede ser mayor a la hora final (hora militar)")
+                    messagebox.showerror("Error", "La hora inicial no puede ser mayor a la hora final (hora militar).")
                     return
                 
                 elif inicial == final:
-                    messagebox.showerror("Error", "La hora inicial no puede ser igual a la hora final")
+                    messagebox.showerror("Error", "La hora inicial no puede ser igual a la hora final.")
                     return
 
 
@@ -1032,7 +1032,7 @@ class Inscripciones_2:
             { "text": "Domingo", "value": "U", "var": tk.BooleanVar(self.schedule_dialog, name="sunday", value=False)},
         ]
 
-        label_days = tk.Label(self.schedule_dialog, text="Días del horario")
+        label_days = tk.Label(self.schedule_dialog, text="Días del horario:")
         label_days.pack(
             anchor="w",
             ipadx=32,
@@ -1057,7 +1057,7 @@ class Inscripciones_2:
                 fill="none"
             )
 
-        label_hours = tk.Label(self.schedule_dialog, text="Hora del horario")
+        label_hours = tk.Label(self.schedule_dialog, text="Hora del horario:")
         label_hours.pack(
             anchor="w",
             ipadx=32,
@@ -1166,30 +1166,30 @@ class Inscripciones_2:
     
         id_estudiante = self.cmbx_Id_Alumno.get()
         if not id_estudiante:
-            messagebox.showerror("Error","Por favor selecciona un ID de algún Alumno")
+            messagebox.showerror("Error","Por favor, selecciona el ID de algún Alumno")
             return 
         cod_curso = self.valor_id.get()
         nom_curso = self.cmbx_Cursos.get()
         if not cod_curso or not nom_curso:
-            messagebox.showerror("Error","Por favor selecciona un curso")
+            messagebox.showerror("Error","Por favor, selecciona un curso.")
             return
         fecha = self.fecha_value.get()
         if not fecha:
             messagebox.showerror("Error","Digite una fecha")
             return
         if not self.validar_fecha():
-            messagebox.showerror("Error", "Por favor digita correctamente la fecha del registro")
+            messagebox.showerror("Error", "Por favor, digita correctamente la fecha del registro.")
             return
 
         horario_curso = self.horario.get()
         if not horario_curso:
-            messagebox.showerror("Error", "Por favor ingrese el horario del curso a inscribir")
+            messagebox.showerror("Error", "Por favor, ingrese el horario del curso a inscribir.")
             return
         
         registro = self.num_InscripcionVar.get()
         curso_Existe = self.revisar_curso(id_estudiante, cod_curso)
         if curso_Existe == True:
-            messagebox.showerror("Error","El alumno ya esta tomando este curso")
+            messagebox.showerror("Error","El alumno ya está tomando este curso.")
             return
     
 
@@ -1206,7 +1206,7 @@ class Inscripciones_2:
         self.add_records_to_treeview()    
       
 
-        messagebox.showinfo("Completado","La inscripción se guardo con exito")
+        messagebox.showinfo("Completado","La inscripción se guardó con éxito.")
 
         return
     
@@ -1252,7 +1252,7 @@ class Inscripciones_2:
             try:
                 existe = self.revisar_horario(id_Alumno, id_Curso, horario)
                 if existe == True:
-                    messagebox.showerror("Error", "Ese alumno ya esta viendo ese curso en ese horario.") 
+                    messagebox.showerror("Error", "Ese alumno ya está viendo ese curso en ese horario.") 
                     return 
                 else:
                     self.distinto_horario(id_Alumno, id_Curso, fecha, horario)
@@ -1262,7 +1262,7 @@ class Inscripciones_2:
             if not id_Curso:
                 messagebox.showerror("Error", "Por favor, seleccione un curso.")
             elif not id_Alumno:
-                messagebox.showerror("Error", "Por favor, ingrese el Id del alumno.") 
+                messagebox.showerror("Error", "Por favor, ingrese el ID del alumno.") 
             elif not horario:
                 messagebox.showerror("Error", "Por favor, ingrese el horario.")
             elif not fecha:
@@ -1287,7 +1287,7 @@ class Inscripciones_2:
                self.connection.commit()
                self.cursor.close()
                self.add_records_to_treeview()
-               messagebox.showinfo("Exito", "Datos actualizados correctamente")   
+               messagebox.showinfo("Éxito", "Datos actualizados correctamente.")   
 
     def opciones_edicion(self, No_inscripción: int, student_id: str, course_code: str, inscripcion_date: str, horario: str):
 
@@ -1326,7 +1326,7 @@ class Inscripciones_2:
         self.connection.commit()
         self.cursor.close()
         self.add_records_to_treeview()
-        messagebox.showinfo("Exito", "Datos actualizados correctamente")    
+        messagebox.showinfo("Éxito", "Datos actualizados correctamente.")    
 
     def editar_inscripción_cursos(self):
         id_Alumno = self.cmbx_Id_Alumno.get() 
@@ -1346,7 +1346,7 @@ class Inscripciones_2:
         self.cursor.close()
         self.add_records_to_treeview()  
         self.habilitar()
-        messagebox.showinfo("Exito", "Datos actualizados correctamente")
+        messagebox.showinfo("Éxito", "Datos actualizados correctamente.")
 
     def habilitar(self):
         self.__highlight_btns(self.btn_names)
@@ -1364,7 +1364,7 @@ class Inscripciones_2:
 
         #Label Aviso
         self.lblinfo = ttk.Label(self.mini, name="lblinfo")
-        self.lblinfo.configure(background="#bfcde6", text='Seleccione el curso que desea reemplazar')
+        self.lblinfo.configure(background="#bfcde6", text='Seleccione el curso que desea reemplazar:')
         self.lblinfo.place(anchor="nw", x=97, y=12)
 
         #Label Codigo_curso
@@ -1379,7 +1379,7 @@ class Inscripciones_2:
         
         #Label Curso
         self.lblcurso = ttk.Label(self.mini, name="lblcurso")
-        self.lblcurso.configure(background="#bfcde6", text='Nombre del codigo:')
+        self.lblcurso.configure(background="#bfcde6", text='Nombre del curso:')
         self.lblcurso.place(anchor="nw", x=20, y=75)
 
         #Entry Curso
@@ -1518,7 +1518,7 @@ class Inscripciones_2:
         id_Curso = self.combo_cursos.get()
         self.cursor.execute("SELECT Código_Curso FROM Cursos WHERE Descripción_Curso = ?", (id_Curso,))
         codigo_curso = self.cursor.fetchone()[0]
-        self.cursor.execute("Select Id_Alumno FROM Inscritos WHERE Código_Curso = ?", (codigo_curso,))
+        self.cursor.execute("SELECT Id_Alumno FROM Inscritos WHERE Código_Curso = ?", (codigo_curso,))
         id_Alumnos = self.cursor.fetchall()
         self.cursor.close()
         for id_Alumno in id_Alumnos:
@@ -1528,10 +1528,7 @@ class Inscripciones_2:
             alumnos = self.cursor.fetchone()
             self.treeview_consulta.insert("", "end", values=alumnos)
             self.cursor.close()
-<<<<<<< HEAD
-=======
 
->>>>>>> b0fa435631f274387668b1740374d72a5546849f
 
 if __name__ == "__main__":
     app = Inscripciones_2()
