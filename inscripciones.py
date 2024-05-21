@@ -210,7 +210,7 @@ class Inscripciones_2:
         self.style.configure('TButton', background='#85C1E9', foreground='black')
 
         #Boton Consultar
-        self.btnConsultar= ttk.Button(self.frm_1, name=self.btn_names[0])
+        self.btnConsultar= ttk.Button(self.frm_1, name=self.btn_names[0], command=self.abrir_consulta)
         self.btnConsultar.configure(text='Consultar')
         self.btnConsultar.place(anchor="nw",x=150,y=260)
 
@@ -317,6 +317,7 @@ class Inscripciones_2:
                 return False
         else:
             return False
+        
     def autocompletar_slash(self, event):
         fecha = self.fecha_value.get()
         if len(fecha) == 2 or len(fecha) == 5:
@@ -1325,6 +1326,74 @@ class Inscripciones_2:
     def delete_records_by_action (self):
         self.__highlight_btns((self.btn_names[3], self.btn_names[4]))
         self.current_action = self.available_actions[3]
+
+    def abrir_consulta(self):
+        ventanaConsulta = tk.Toplevel(self.win)
+        ventanaConsulta.title("Consulta")
+        ventanaConsulta.resizable(False, False)
+        ventanaConsulta.geometry("300x300")  
+        ventanaConsulta.update_idletasks()
+        width = ventanaConsulta.winfo_width()
+        height = ventanaConsulta.winfo_height()
+        x = (self.win.winfo_screenwidth() - width) // 2
+        y = (self.win.winfo_screenheight() - height) // 2
+        ventanaConsulta.geometry(f"{width}x{height}+{x}+{y}")
+
+        self.frame_estudiante = tk.Frame(ventanaConsulta)
+        self.frame_estudiante.pack(padx=10, pady=10)
+        label_estudiante = tk.Label(self.frame_estudiante, text="Seleccionar estudiante:")
+        label_estudiante.pack(side="left")
+        self.combo_estudiantes = ttk.Combobox(self.frame_estudiante, values=self.idcbox(), state="readonly")
+        self.combo_estudiantes.pack(side="left")
+
+        self.frame_curso = tk.Frame(ventanaConsulta)
+        self.frame_curso.pack(padx=10, pady=10)
+        label_curso = tk.Label(self.frame_curso, text="Seleccionar curso:")
+        label_curso.pack(side="left")
+        self.combo_cursos = ttk.Combobox(self.frame_curso, values=self.cursosbox(), state="readonly")
+        self.combo_cursos.pack(side="left")
+
+        self.frame_treeview = tk.Frame(ventanaConsulta)
+        self.frame_treeview.pack(padx=10, pady=10, fill="both", expand=True)
+        self.treeview_consulta = ttk.Treeview(self.frame_treeview, columns=("columna1","columna2"), show="headings")
+        self.treeview_consulta.heading("columna1", text="Datos de la Consulta")
+        self.treeview_consulta.pack(side="left", fill="both", expand=True)
+        self.combo_estudiantes.bind("<<ComboboxSelected>>", self.consultar_cursos_del_estudiante)
+        self.combo_cursos.bind("<<ComboboxSelected>>", self.consultar_estudiantes_del_curso)
+
+    def consultar_cursos_del_estudiante(self, event):
+        self.treeview_consulta.delete(*self.treeview_consulta.get_children())  
+        self.cursor = self.connection.cursor()
+        id_Alumno = self.combo_estudiantes.get()
+        self.cursor.execute("SELECT Código_Curso FROM Inscritos WHERE Id_Alumno = ?", (id_Alumno,))
+        id_Cursos = self.cursor.fetchall()
+        self.cursor.close()
+        for id_Curso in id_Cursos:
+            codigo_curso = id_Curso[0]  
+            self.cursor = self.connection.cursor()
+            self.cursor.execute("SELECT Descripción_Curso FROM Cursos WHERE Código_Curso = ?", (codigo_curso,))
+            descripcion_curso = self.cursor.fetchone()
+            self.treeview_consulta.insert("", "end", values=descripcion_curso)
+            self.cursor.close()
+
+    def consultar_estudiantes_del_curso(self, event):
+        self.treeview_consulta.delete(*self.treeview_consulta.get_children()) 
+        self.cursor = self.connection.cursor()
+        id_Curso = self.combo_cursos.get()
+        self.cursor.execute("SELECT Código_Curso FROM Cursos WHERE Descripción_Curso = ?", (id_Curso,))
+        codigo_curso = self.cursor.fetchone()[0]
+        self.cursor.execute("Select Id_Alumno FROM Inscritos WHERE Código_Curso = ?", (codigo_curso,))
+        id_Alumnos = self.cursor.fetchall()
+        self.cursor.close()
+        for id_Alumno in id_Alumnos:
+            id_alumno = id_Alumno[0]  
+            self.cursor = self.connection.cursor()
+            self.cursor.execute("SELECT Nombres, Apellidos FROM Alumnos WHERE Id_Alumno = ?", (id_alumno,))
+            alumnos = self.cursor.fetchone()
+            self.treeview_consulta.insert("", "end", values=alumnos)
+            self.cursor.close()
+            print(alumnos)
+
 
 if __name__ == "__main__":
     app = Inscripciones_2()
