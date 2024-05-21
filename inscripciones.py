@@ -1454,7 +1454,6 @@ class Inscripciones_2:
         self.__highlight_btns(self.btn_names)
         self.ventanaConsulta.destroy()
         
-
     def abrir_consulta(self):
         self.__highlight_btns([])  
         self.ventanaConsulta = tk.Toplevel(self.win)
@@ -1531,10 +1530,7 @@ class Inscripciones_2:
             alumnos = self.cursor.fetchone()
             self.treeview_consulta.insert("", "end", values=alumnos)
             self.cursor.close()
-<<<<<<< HEAD
 
-=======
->>>>>>> 8a8447a57251e221cd0b834c0917128661d8c4d4
 
 if __name__ == "__main__":
     app = Inscripciones_2()
