@@ -11,7 +11,7 @@ import tkinter as tk
 import tkinter.ttk as ttk
 from  tkinter import messagebox
 
-logger = logging.getLogger(__Name__)
+logger = logging.getLogger(__name__)
 
 class Inscripciones_2:
     # db constants
@@ -847,7 +847,7 @@ class Inscripciones_2:
     def set_Inscripcion(self, record: int, student_Id: str, course_Code: str, inscripcion_Date: str, course_Schedule: str):
         self.cursor = self.connection.cursor()
 
-        query = "INSERT INTO Inscritos (No_Inscripcion, Id_Alumno, Código_Curso, Horario, Fecha_Inscripción) VALUES (?, ?, ?, ?, ?)"
+        query = "INSERT INTO Inscritos (No_Inscripción, Id_Alumno, Código_Curso, Horario, Fecha_Inscripción) VALUES (?, ?, ?, ?, ?)"
         new_Record_Data = (record, student_Id, course_Code, course_Schedule, inscripcion_Date)
         self.cursor.execute(query, new_Record_Data)
 
@@ -1189,7 +1189,6 @@ class Inscripciones_2:
         inscritos = self.cursor.fetchall()
         self.cursor.close()
         inscritos_Ids = [inscrito[0] for inscrito in inscritos]
-        print(inscritos_Ids)
         if id_Estudiante not in inscritos_Ids:
             self.variable += 1
 
