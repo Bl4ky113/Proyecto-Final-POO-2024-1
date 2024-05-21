@@ -23,8 +23,7 @@ class Inscripciones_2:
         "careers": "Carreras",
         "students": "Alumnos",
         "courses": "Cursos",
-        "records": "Inscritos",
-        "num_records": "Num_Inscripciones"
+        "records": "Inscritos"
     }
 
     # Schedule constants
@@ -44,7 +43,6 @@ class Inscripciones_2:
         "btnGuardar",
         "btnEditar",
         "btnEliminar",
-        "btnCancelar"
     )
 
     current_action = ""
@@ -56,6 +54,7 @@ class Inscripciones_2:
         "dialog-open"
     )
 
+    
     def __init__(self, master=None):
         self.config_db()
         # Ventana principal
@@ -80,8 +79,10 @@ class Inscripciones_2:
         self.win.resizable(False, False)
         self.win.title("Inscripciones de Materias y Cursos")
 
+
         # Crea los frames
         self.frm_1 = tk.Frame(self.win, name="frm_1")
+        self.frm_1.after(0,self.inicial())
         self.frm_1.configure(
             background="#AED6F1",
             height=600,
@@ -230,20 +231,15 @@ class Inscripciones_2:
         self.btnEliminar = ttk.Button(
             self.frm_1, 
             name=self.btn_names[3],
-            command=self.handle_delete_records
+            command=self.eliminar
         )
         self.btnEliminar.configure(text='Eliminar')
         self.btnEliminar.place(anchor="nw", x=450, y=260)
 
         #Botón Cancelar
-        self.btnCancelar = ttk.Button(self.frm_1, name=self.btn_names[4])
+        self.btnCancelar = ttk.Button(self.frm_1, name= "btnCancelar")
         self.btnCancelar.configure(text='Cancelar', command= self.cancel_Record)
         self.btnCancelar.place(anchor="nw", x=550, y=260)
-
-        #Botón Editar plus
-        self.btnEditarplus = ttk.Button(self.frm_1, name="btneditarplus")
-        self.btnEditarplus.configure(text='Editar Alumnos',  command= self.ventana_alumnos)
-        self.btnEditarplus.place(anchor="nw", x=230, y=78)
 
         #Separador
         separator1 = ttk.Separator(self.frm_1)
@@ -279,6 +275,7 @@ class Inscripciones_2:
         self.tView.heading(tView_cols[4], anchor="w", text="Fecha Inscripción")
         self.add_records_to_treeview()
         self.tView.place(anchor="nw", height=300, width=790, x=4, y=290)
+        self.tView.bind('<<TreeviewSelect>>',self.autocompletar_treeview)
 
         #Scrollbars
         self.scroll_H = ttk.Scrollbar(self.frm_1, name="scroll_h", command=self.tView.xview)
@@ -290,24 +287,38 @@ class Inscripciones_2:
         
         self.frm_1.pack(side="top")
         self.frm_1.pack_propagate(0)
-        
+     
         # Configurar las barras de desplazamiento para el Treeview
         self.tView.configure(xscrollcommand=self.scroll_H.set, yscrollcommand=self.scroll_Y.set)
 
         # Main widget
-        self.mainwindow = self.win
+        self.mainwindow = self.win  
  
     def run(self):
         self.mainwindow.mainloop()
-    
-    def ventana_alumnos(self):
-        self.ventana_secundaria_alumnos(self.cmbx_Id_Alumno.get())
+
+    def eliminar(self):
+        try:
+            self.handle_delete_records()
+            self.cancel_Record()
+        except:
+            messagebox.showerror("Error", "Por favor seleccione un dato en el treeview para eliminar")
+        
+        
+    def inicial(self):
+        self.cursor = self.connection.cursor()
+        self.cursor.execute("SELECT MAX(No_Inscripción) FROM Inscritos")
+        resultado = self.cursor.fetchone()
+        self.cursor.close()
+        if resultado[0] is not None:
+            self.variable = int(resultado[0])
+        else:
+            self.variable = 0
 
     def centrarVentana(self,w_ventana,h_ventana):
         x_ventana = self.win.winfo_screenwidth() // 2 - w_ventana // 2
         y_ventana = self.win.winfo_screenheight() // 2 - h_ventana // 2
         centrado=str(w_ventana) + "x" + str(h_ventana) + "+" + str(x_ventana) + "+" + str(y_ventana)
-
         return centrado
     
     def validar_fecha(self):
@@ -322,7 +333,7 @@ class Inscripciones_2:
                 return False
         else:
             return False
-
+        
     def autocompletar_slash(self, event):
         fecha = self.fecha_value.get()
         if len(fecha) == 2 or len(fecha) == 5:
@@ -346,11 +357,17 @@ class Inscripciones_2:
 
         # UnSelect all records in treeView
         self.tView.selection_remove(self.tView.selection())
-
         self.clear_Form()
+        self.varios_horarios(7856019526884687)
+        
 
         try:
-            self.habilitar()
+            self.schedule_dialog.destroy()
+        except:
+            pass
+
+        try:
+            self.mini.destroy()
         except:
             pass
 
@@ -363,16 +380,13 @@ class Inscripciones_2:
         self.valor_id.set("")
         self.schedule_variable.set("")
         self.cmbx_Id_Alumno.set("")
-
         return
 
     def numero_de_registro(self):   
-        self.cursor = self.connection.cursor()
-        self.cursor.execute("SELECT DISTINCT Id_Alumno FROM Inscritos") 
-        cantidad = len(self.cursor.fetchall())
-        id_registro = cantidad + 1
+        id_registro = self.variable + 1
         self.cursor.close()
         return id_registro 
+    
     
     def no_registro_estudiante(self, student_id):    
         self.cursor = self.connection.cursor()  
@@ -385,158 +399,9 @@ class Inscripciones_2:
             return self.numero_de_registro()
     
     def habilitar(self):
-        self.mini.destroy()
-        self.btnEditarplus["state"] = "normal"
-
+        
         self.__highlight_btns(self.btn_names)
     
-    def ventana_secundaria_alumnos(self,id):
-        def btn_guardar_plus():
-            self.setter_alumnos(id)
-
-        if id == "":
-            messagebox.showerror("Error", "Porfavor, seleccione algun Id")
-        else:
-            self.__highlight_btns([])
-            self.mini = tk.Toplevel()
-            self.mini.resizable(False,False)
-            self.mini.title("Edición de datos")
-            self.mini.configure(background="#2271b3")
-            self.mini.geometry(self.centrarVentana(460,160))
-            self.mini.protocol("WM_DELETE_WINDOW", self.habilitar)
-            
-            #Label nombre
-            self.lblname = ttk.Label(self.mini, name="lblname ")
-            self.lblname.configure(background="#bfcde6", text='Nombres:')
-            self.lblname.place(anchor="nw", x=20, y=20)
-    
-            #Entry nombre
-            self.name = ttk.Entry(self.mini, name="name")
-            self.name.configure(justify="center")
-            self.name.place(anchor="nw", width=90, x=90, y=20)
-    
-            #Label Apellido
-            self.lbllastname = ttk.Label(self.mini, name="lbllastname")
-            self.lbllastname.configure(background="#bfcde6", text='Apellidos:')
-            self.lbllastname.place(anchor="nw", x=20, y=50)
-    
-            #Entry Apellido
-            self.lastname = ttk.Entry(self.mini, name="lastname")
-            self.lastname.configure(justify="center")
-            self.lastname.place(anchor="nw", width=90, x=90, y=50)
-
-            #Label Dirección
-            self.lbladdress = ttk.Label(self.mini, name="lbladress")
-            self.lbladdress.configure(background="#bfcde6", text='Dirección:')
-            self.lbladdress.place(anchor="nw", x=20, y=80)
-    
-            #Entry Dirección
-            self.address = ttk.Entry(self.mini, name="address")
-            self.address.configure(justify="center")
-            self.address.place(anchor="nw", width=90, x=90, y=80)
-    
-            #Label Ciudad
-            self.lblcity = ttk.Label(self.mini, name="lblcity")
-            self.lblcity.configure(background="#bfcde6", text='Ciudad:')
-            self.lblcity.place(anchor="nw", x=20, y= 110)
-    
-            #Entry Ciudad
-            self.place = ttk.Entry(self.mini, name="place")
-            self.place.configure(justify="center")
-            self.place.place(anchor="nw", width=90, x=90, y=110)
-    
-            #Label Departamento 
-            self.lbldepartment = ttk.Label(self.mini, name="lbldepartment")
-            self.lbldepartment.configure(background="#bfcde6", text='Departamento:')
-            self.lbldepartment.place(anchor="nw", x=240, y= 20)
-    
-            #Entry Departamento
-            self.department = ttk.Entry(self.mini, name="department")
-            self.department.configure(justify="center")
-            self.department.place(anchor="nw", width=90, x=340, y=20)
-                  
-            #Label Cel
-            self.lblcellphone = ttk.Label(self.mini, name="lblcellphone")
-            self.lblcellphone.configure(background="#bfcde6", text='Teléfono Celular:')
-            self.lblcellphone.place(anchor="nw", x=240, y= 80)
-    
-            #Entry Cel
-            self.cellphone = ttk.Entry(self.mini, name="cellphone")
-            self.cellphone.configure(justify="center")
-            self.cellphone.place(anchor="nw", width=90, x=340, y=80)
-    
-            #Label Fijo
-            self.lblphone = ttk.Label(self.mini, name="lblphone")
-            self.lblphone.configure(background="#bfcde6", text='Teléfono Fijo:')
-            self.lblphone.place(anchor="nw", x=240, y=50)
-    
-            #Entry Fijo
-            self.phone = ttk.Entry(self.mini, name="phone")
-            self.phone.configure(justify="center")
-            self.phone.place(anchor="nw", width=90, x=340, y=50)
-    
-            #Botones
-            guardar = ttk.Button(self.mini, text="Guardar", command= btn_guardar_plus)
-            guardar.place(anchor="nw", width=90, x=240, y=115)
-    
-            cerrar = ttk.Button(self.mini,text="Cerrar",command = self.habilitar)
-            cerrar.place(anchor="nw", width=90, x=340,y=115)
-
-
-    def setter_alumnos (self,id):
-        self.cursor = self.connection.cursor()
-        datos = [self.name.get(),self.lastname.get(),self.place.get(),self.address.get(),self.department.get()]
-        telefonos = [self.cellphone.get(), self.phone.get()]
-
-        for dato in datos:
-            if len(dato) > 64:
-                messagebox.showerror("Error", "Ocurrio un error, deben ser maximo 64 caracteres en los siguientes espacios: Nombre, Apellido, Ciudad, Dirección, Departamento")
-                return
-            else:
-                pass
-            
-        for telefono in telefonos:
-            if len(telefono) != 9 and telefono:
-                messagebox.showerror("Error", "Ocurrio un error, deben ser 9 caracteres en Telefono celular y Telefono fijo")
-                return
-            elif telefono == "":
-                pass
-            else:
-                try:
-                    if int(telefono) < 0:
-                        messagebox.showerror("Error", "Ocurrio un error con Teléfono  Celular, deben ser números postivos")
-                        return
-                except ValueError:
-                    messagebox.showerror("Error", "Ocurrio un error con Teléfono Celular, deben ser números unicamente")
-                    return
-            
-        if self.name.get():
-            self.cursor.execute("UPDATE Alumnos SET Nombres= ? WHERE Id_Alumno=  ?",(self.name.get(),id))
-        
-        if self.lastname.get():
-            self.cursor.execute("UPDATE Alumnos SET Apellidos= ? WHERE Id_Alumno= ?",(self.lastname.get(),id))
-
-        if self.place.get():
-            self.cursor.execute("UPDATE Alumnos SET  Ciudad= ? WHERE Id_Alumno= ?",(self.place.get(),id))
-
-        if self.department.get():
-            self.cursor.execute("UPDATE Alumnos SET Departamento= ? WHERE Id_Alumno= ?",(self.department.get(),id))
-
-        if self.address.get():
-            self.cursor.execute("UPDATE Alumnos SET Dirección= ?  WHERE Id_Alumno= ?", (self.address.get(), id)) 
-
-        if self.cellphone.get():
-            self.cursor.execute("UPDATE Alumnos SET Telef_Cel= ? WHERE Id_Alumno= ?",(self.cellphone.get(),id))
-
-        if self.phone.get():
-            self.cursor.execute("UPDATE Alumnos SET Telef_Fijo= ? WHERE Id_Alumno= ?",(self.phone.get(),id))
-     
-        self.connection.commit()
-        self.cursor.close()    
-        messagebox.showinfo("Exito", "Datos actualizados correctamente")
-        self.habilitar()        
-
-
     def config_db (self):
         self.connection = sqlite3.connect(self.db_path)
         self.cursor = self.connection.cursor()
@@ -583,17 +448,9 @@ class Inscripciones_2:
                 Código_Curso VARCHAR(16) NOT NULL,
                 Horario VARCHAR(16) NOT NULL,
                 Fecha_Inscripción DATE NOT NULL,
-                
-                PRIMARY KEY (No_Inscripción AUTOINCREMENT),
+
                 FOREIGN KEY (Id_Alumno) REFERENCES Alumnos(Id_Alumno),
                 FOREIGN KEY (Código_Curso) REFERENCES Cursos(Código_Curso)
-            );
-            CREATE TABLE IF NOT EXISTS Num_Inscripciones (
-                Inscripción_Alumno INTEGER,
-                Id_Alumno VARCHAR(32) NOT NULL UNIQUE,
-                
-                PRIMARY KEY (Inscripción_Alumno AUTOINCREMENT),
-                FOREIGN KEY (Id_Alumno) REFERENCES Alumnos(Id_Alumno)
             );
         ''')
 
@@ -676,40 +533,23 @@ class Inscripciones_2:
 
         self.cursor.close()
 
-    def __generate_columns_to_get_string (self, table_name: str, column_name_list: typing.Iterable[str], any_join: bool=False) -> str:
-        table_name_str = self.db_tables[table_name]
+    def __generate_columns_to_get_string (self, table_name: str, column_name_list: typing.Iterable[str]) -> str:
         column_name_str = ""
 
         if (len(column_name_list) <= 0):
-            column_name_str = "*"
-
-            if (any_join):
-                column_name_str = table_name_str + "." + column_name_str
-
-            return column_name_str # ALL BY DEFAULT
+            return "*" # ALL BY DEFAULT
         
         if (not self.__check_only_column_names_in_list(table_name, column_name_list)):
+            table_name_str = self.db_tables[table_name]
             raise sqlite3.OperationalError(f'COLUMN NAMES TO GET NOT AVAILABLE IN {table_name_str} TABLE')
 
         for i, column_name in enumerate(column_name_list):
             if i != 0 and i != len(column_name_list):
                 column_name_str += ', '
 
-            if any_join:
-                column_name = table_name_str + "." + column_name
-
             column_name_str += column_name
 
         return column_name_str
-
-    def __generate_table_join_str (self, local_table: str, data_join: dict) -> str:
-        local_table_str = self.db_tables[local_table]
-        foreign_table_str = self.db_tables[data_join["foreign_table"]]
-
-        # TODO: VALIDATORS FOR KEY COLUMSN
-
-        table_join_str = f"INNER JOIN {foreign_table_str} ON {local_table_str}.{data_join['local_key']} = {foreign_table_str}.{data_join['foreign_key']}"
-        return table_join_str
 
     def __check_only_column_names_in_list (self, table_name: str, column_name_list: typing.Iterable[str]) -> bool:
         table_name_str = self.db_tables[table_name]
@@ -720,12 +560,12 @@ class Inscripciones_2:
 
         for column_name in column_name_list:
             if (column_name not in table_columns):
-                logger.warning(f"FILTER '{column_name}' NOT IN {table_name_str} SCHEMA")
+                logger.warning(f"FILTER '{filter_key}' NOT IN {element_table_str} SCHEMA")
                 return False
 
         return True
 
-    def __get_element_by_id (self, element_table: str, element_id, id_config: dict, columns_to_get: typing.Iterable[str]=[]) -> tuple():
+    def __get_element_by_id (self, element_table: str, element_id, id_config: dict, *columns_to_get: str) -> tuple():
         element_table_str = self.db_tables[element_table]
         columns_to_get_str = self.__generate_columns_to_get_string(element_table, columns_to_get)
 
@@ -742,25 +582,12 @@ class Inscripciones_2:
 
         return element
 
-    def __get_all_elements (self, element_table: str, data_joins: typing.Iterable[dict]=[], columns_to_get: typing.Iterable[str]=[]) -> list(tuple()):
-        any_join = len(data_joins) > 0
-
+    def __get_all_elements (self, element_table: str, *columns_to_get: str) -> list(tuple()):
         element_table_str = self.db_tables[element_table]
-        columns_to_get_str = self.__generate_columns_to_get_string(element_table, columns_to_get, any_join=any_join)
+        columns_to_get_str = self.__generate_columns_to_get_string(element_table, columns_to_get)
 
         if element_table not in self.db_tables.keys():
             raise sqlite3.DataError(f"ELEMENT TABLE: {element_table} IS NOT A VALID TABLE")
-
-        if any_join:
-            for i, data_join in enumerate(data_joins):
-                if (i != len(data_joins)):
-                    columns_to_get_str += ", "
-
-                join_columns_to_get_str = self.__generate_columns_to_get_string(data_join["foreign_table"], data_join["columns_to_get"], any_join=True)
-                columns_to_get_str += join_columns_to_get_str
-                
-                table_join_str = self.__generate_table_join_str(element_table, data_join)
-                element_table_str = f"({element_table_str} {table_join_str})"
 
         self.cursor = self.connection.cursor()
         self.cursor.execute(f"SELECT {columns_to_get_str} FROM {element_table_str}")
@@ -772,7 +599,7 @@ class Inscripciones_2:
 
         return elements
 
-    def __get_elements_with_query (self, element_table: str, columns_to_get: typing.Iterable[str]=[], **filters) -> list(tuple()):
+    def __get_elements_with_query (self, element_table: str, *columns_to_get: str, **filters) -> list(tuple()):
         element_table_str = self.db_tables[element_table]
         columns_to_get_str = self.__generate_columns_to_get_string(element_table, columns_to_get)
         query_values = []
@@ -821,7 +648,7 @@ class Inscripciones_2:
         logger.log(100, f"DELETED '{element_table_str}' ELEMENT WITH ID '{element_id}'")
         return True
 
-    def get_career_by_id (self, career_id: str, data_joins: typing.Iterable[dict]=[], columns_to_get: typing.Iterable[str]=[]) -> tuple([str, str, int]):
+    def get_career_by_id (self, career_id: str, *columns_to_get: str) -> tuple([str, str, int]):
         career = self.__get_element_by_id(
             'careers',
             career_id,
@@ -830,7 +657,7 @@ class Inscripciones_2:
                 "max": 16,
                 "label": "Código_Carrera"
             },
-            *columns_to_get,
+            *columns_to_get
         )
 
         if not career:
@@ -838,7 +665,7 @@ class Inscripciones_2:
 
         return career
                        
-    def get_careers (self, filters: dict={}, data_joins: typing.Iterable[dict]=[], columns_to_get: typing.Iterable[str]=[]) -> list(tuple([str, str, int])):
+    def get_careers (self, filters: dict={}, *columns_to_get: str) -> list(tuple([str, str, int])):
         if (len(filters.keys()) == 0):
             careers = self.__get_all_elements('careers', *columns_to_get)
 
@@ -870,7 +697,7 @@ class Inscripciones_2:
 
         return True
 
-    def get_student_by_id (self, student_id: str, data_joins: typing.Iterable[dict]=[], columns_to_get: typing.Iterable[str]=[]) -> tuple([str, str, str, str, str, str, str, str, str, str]):
+    def get_student_by_id (self, student_id: str, *columns_to_get: str) -> tuple([str, str, str, str, str, str, str, str, str, str]):
         student = self.__get_element_by_id(
             'students',
             student_id,
@@ -887,24 +714,16 @@ class Inscripciones_2:
 
         return student
 
-    def get_students (self, filters: dict={}, data_joins: typing.Iterable[dict]=[], columns_to_get: typing.Iterable[str]=[]) -> list(tuple([str, str, str, str, str, str, str, str, str, str])):
+    def get_students (self, filters: dict={}, *columns_to_get: str) -> list(tuple([str, str, str, str, str, str, str, str, str, str])):
         if (len(filters.keys()) == 0):
-            students = self.__get_all_elements(
-                'students',
-                data_joins=data_joins,
-                columns_to_get=columns_to_get
-            )
+            students = self.__get_all_elements('students', *columns_to_get)
 
             if len(students) <= 0:
                 raise sqlite3.DataError('NO STUDENTS AVAILABLE')
 
             return students
 
-        students = self.__get_elements_with_query(
-            'students',
-            columns_to_get=columns_to_get,
-            **filters
-        )
+        students = self.__get_elements_with_query('students', *columns_to_get, **filters)
 
         if len(students) <= 0:
             raise sqlite3.DataError(f"NO STUDENTS AVAILABLE WITH QUERY: {filters}")
@@ -927,7 +746,7 @@ class Inscripciones_2:
 
         return True
     
-    def get_course_by_id (self, course_id: str, data_joins: typing.Iterable[dict]=[], columns_to_get: typing.Iterable[str]=[]) -> tuple([str, str, str, int]):
+    def get_course_by_id (self, course_id: str, *columns_to_get: str) -> tuple([str, str, str, int]):
         course = self.__get_element_by_id(
             'courses',
             course_id,
@@ -936,7 +755,7 @@ class Inscripciones_2:
                 "max": 7,
                 "label": "Código_Curso"
             },
-            columns_to_get=columns_to_get
+            *columns_to_get
         )
 
         if not course:
@@ -944,23 +763,16 @@ class Inscripciones_2:
 
         return course
 
-    def get_courses (self, filters: dict={}, columns_to_get: typing.Iterable[str]=[]) -> list(tuple([str, str, str, int])):
+    def get_courses (self, filters: dict={}, *columns_to_get: str) -> list(tuple([str, str, str, int])):
         if (len(filters.keys()) == 0):
-            courses = self.__get_all_elements(
-                'courses', 
-                columns_to_get=columns_to_get
-            )
+            courses = self.__get_all_elements('courses', *columns_to_get)
 
             if len(courses) <= 0:
                 raise sqlite3.DataError('NO COURSES AVAILABLE')
 
             return courses
 
-        courses = self.__get_elements_with_query(
-            'courses',
-            columns_to_get=columns_to_get,
-            **filters
-        )
+        courses = self.__get_elements_with_query('courses', *columns_to_get, **filters)
 
         if len(courses) <= 0:
             raise sqlite3.DataError(f"NO COURSES AVAILABLE WITH QUERY: {filters}")
@@ -983,17 +795,16 @@ class Inscripciones_2:
 
         return True
 
-    def get_record_by_id (self, record_id: str, data_joins: typing.Iterable[dict]=[], columns_to_get: typing.Iterable[str]=[]) -> tuple([str, str, str, str, str]):
+    def get_record_by_id (self, record_id: str, *columns_to_get) -> tuple([str, str, str, str, str]):
         record = self.__get_element_by_id(
             'records',
             record_id,
             {
-                "min": 1,
+                "min": 16,
                 "max": 16,
                 "label": "No_Inscripción"
             },
-            columns_to_get=columns_to_get,
-            **data_joins
+            *columns_to_get
         )
 
         if not record:
@@ -1001,24 +812,16 @@ class Inscripciones_2:
 
         return record
 
-    def get_records (self, filters: dict={}, data_joins: typing.Iterable[dict]=[], columns_to_get: typing.Iterable[str]=[]) -> list(tuple([str, str, str, str, str])):
+    def get_records (self, filters: dict={}, *columns_to_get) -> list(tuple([str, str, str, str, str])):
         if (len(filters.keys()) == 0):
-            records = self.__get_all_elements(
-                'records',
-                data_joins=data_joins,
-                columns_to_get=columns_to_get
-            )
+            records = self.__get_all_elements('records', *columns_to_get)
 
             if len(records) <= 0:
                 raise sqlite3.DataError('NO RECORDS AVAILABLE')
 
             return records
 
-        records = self.__get_elements_with_query(
-            'records', 
-            columns_to_get=columns_to_get, 
-            **filters
-        )
+        records = self.__get_elements_with_query('records', *columns_to_get, **filters)
 
         if len(records) <= 0:
             raise sqlite3.DataError(f"NO RECORDS AVAILABLE WITH QUERY: {filters}")
@@ -1139,6 +942,8 @@ class Inscripciones_2:
             start_hour = start_hour_entry.get()
             end_hour = end_hour_entry.get()
 
+            
+
             if not self.validate_hour(start_hour):
                 messagebox.showerror("Error", "El formato de la fecha inicial del horario esta mal")
                 return hours_str
@@ -1146,6 +951,35 @@ class Inscripciones_2:
             if not self.validate_hour(end_hour):
                 messagebox.showerror("Error", "El formato de la fecha final del horario esta mal")
                 return hours_str
+            
+            else:
+                inicial = int(start_hour.replace(":", ""))
+                final = int(end_hour.replace(":", ""))
+
+                if int(start_hour[3:5]) > 59:
+                    messagebox.showerror("Error", "La hora solo tiene 59 minutos")
+                    return
+                
+                elif int(end_hour[3:5]) > 59:
+                    messagebox.showerror("Error", "La hora solo tiene 59 minutos")
+                    return
+
+                elif inicial > 2359:
+                    messagebox.showerror("Error", "La hora no puede ser mayor a 23:59")
+                    return
+    
+                elif final > 2359:
+                    messagebox.showerror("Error", "La hora no puede ser mayor a 23:59")
+                    return
+    
+                elif inicial > final:
+                    messagebox.showerror("Error", "La hora inicial no puede ser mayor a la hora final (hora militar)")
+                    return
+                
+                elif inicial == final:
+                    messagebox.showerror("Error", "La hora inicial no puede ser igual a la hora final")
+                    return
+
 
             hours_str = start_hour + '-' + end_hour
             return hours_str
@@ -1175,6 +1009,9 @@ class Inscripciones_2:
         self.__highlight_btns([])
         
         self.schedule_dialog = tk.Toplevel(pady=32)
+        self.schedule_dialog.geometry(self.centrarVentana(550,300))
+        self.schedule_dialog.resizable(False,False)
+        
         self.schedule_dialog.title("Generar Horario de Inscripción")
         self.schedule_dialog.protocol("WM_DELETE_WINDOW", self.close_schedule_dialog)
 
@@ -1258,12 +1095,12 @@ class Inscripciones_2:
         return
 
     def idcbox (self):
-        students_ids = self.get_students(columns_to_get=["Id_Alumno"])
+        students_ids = self.get_students({}, "Id_Alumno")
         students_ids = [ids[0] for ids in students_ids ]
         return students_ids
     
     def cursosbox(self):
-        courses_names = self.get_courses(columns_to_get=['Descripción_Curso'])
+        courses_names = self.get_courses({}, 'Descripción_Curso')
         courses_names = [curso[0] for curso in courses_names]
         return courses_names
 
@@ -1273,29 +1110,7 @@ class Inscripciones_2:
             self.tView.delete(record)
         
         try:
-            records = self.get_records(
-                filters=record_filter,
-                data_joins=[
-                    {
-                        "foreign_table": "num_records",
-                        "local_key": "Id_Alumno",
-                        "foreign_key": "Id_Alumno",
-                        "columns_to_get": ["Inscripción_Alumno"]
-                    },
-                    {
-                        "foreign_table": "students",
-                        "local_key": "Id_Alumno",
-                        "foreign_key": "Id_Alumno",
-                        "columns_to_get": []
-                    },
-                    {
-                        "foreign_table": "courses",
-                        "local_key": "Código_Curso",
-                        "foreign_key": "Código_Curso",
-                        "columns_to_get": []
-                    }
-                ]
-            )
+            records = self.get_records(filters=record_filter)
 
             for i, record in enumerate(records):
                 record = self._format_record_schedule(record)
@@ -1310,14 +1125,15 @@ class Inscripciones_2:
                 "",
                 0,
                 'end',
-                values=("Actualmente", "no"," hay", "ningún", "registro")
+                text="Actualmente",
+                values=("no"," hay", "ningún", "registro")
             )
 
         return
     
     def autocompletar_datos_Curso(self,event):
         course_name = self.cmbx_Cursos.get()
-        course_data = self.get_courses(filters={"Descripción_Curso": course_name}, columns_to_get=["Código_Curso"])[0]
+        course_data = self.get_courses({"Descripción_Curso": course_name}, "Código_Curso")[0]
         self.valor_id.set(course_data[0])
         return
 
@@ -1328,6 +1144,7 @@ class Inscripciones_2:
 
             if btn_name in buttons_to_highlight:
                 btn["state"] = "normal"
+        
 
     def __get_selected_records (self):
         rows_id = self.tView.selection()
@@ -1367,42 +1184,86 @@ class Inscripciones_2:
         if curso_Existe == True:
             messagebox.showerror("Error","El alumno ya esta tomando este curso")
             return
-        
+    
+
+        self.cursor= self.connection.cursor()
+        self.cursor.execute("SELECT Id_Alumno FROM Inscritos")
+        inscritos = self.cursor.fetchall()
+        self.cursor.close()
+        inscritos_ids = [inscrito[0] for inscrito in inscritos]
+        print(inscritos_ids)
+        if id_estudiante not in inscritos_ids:
+            self.variable += 1
+
         self.set_inscripcion(registro, id_estudiante, cod_curso, fecha, horario_curso)
-        self.add_records_to_treeview()
+        self.add_records_to_treeview()    
+      
 
         messagebox.showinfo("Completado","La inscripción se guardo con exito")
 
         return
     
+    def autocompletar_treeview(self, event):
+        try:
+            elmo = self.__get_selected_records()[0]
+            registro = elmo[0]
+            id_estudiante = str(elmo[1])
+            id_curso = str(elmo[2])
+            fecha = str(elmo[4])
+            curso = self.get_course_by_id(id_curso, 'Descripción_Curso')
+            nombre = self.get_student_by_id(id_estudiante, 'Nombres')
+            apellido = self.get_student_by_id(id_estudiante, 'Apellidos')
+            self.cursor= self.connection.cursor()
+            self.cursor.execute("SELECT Horario FROM Inscritos WHERE Id_Alumno = ? AND Código_Curso = ?", (id_estudiante, id_curso))
+            horario = self.cursor.fetchone()[0]
+            self.cursor.close()
+    
+            self.cmbx_Id_Alumno.set(id_estudiante)
+            self.nombre_Alumno.set(nombre)
+            self.apellido_Alumno.set(apellido)
+            self.cmbx_Cursos.set(curso[0])
+            self.schedule_variable.set(horario)
+            self.valor_id.set(id_curso)
+            self.fecha_value.set(fecha)
+            self.num_InscripcionVar.set(registro)
+        except:
+            pass
+    
     def control_errores_edicion(self):
+            
         id_Alumno = self.cmbx_Id_Alumno.get() 
         id_Curso = self.valor_id.get()
         horario = self.horario.get()
         fecha = self.fecha_value.get()
 
-        no_Registro = self.get_record_by_id(id_Alumno, "Id_Alumno")
-        print(no_Registro)
-        
         try:
-            existe = self.revisar_horario(id_Alumno, id_Curso, horario)
-            if existe == True:
-                messagebox.showerror("Error", "Ese alumno ya esta viendo ese curso en ese horario.") 
-                return 
+            self.cursor= self.connection.cursor()
+            self.cursor.execute("SELECT No_Inscripción FROM Inscritos WHERE Id_Alumno = ?", (id_Alumno,))
+            no_Registro = self.cursor.fetchone()[0]   
+            self.cursor.close()
+        
+            try:
+                existe = self.revisar_horario(id_Alumno, id_Curso, horario)
+                if existe == True:
+                    messagebox.showerror("Error", "Ese alumno ya esta viendo ese curso en ese horario.") 
+                    return 
+                else:
+                    self.distinto_horario(id_Alumno, id_Curso, fecha, horario)
+                    return         
+            except:     
+                pass
+            if not id_Curso:
+                messagebox.showerror("Error", "Por favor, seleccione un curso.")
+            elif not id_Alumno:
+                messagebox.showerror("Error", "Por favor, ingrese el Id del alumno.") 
+            elif not horario:
+                messagebox.showerror("Error", "Por favor, ingrese el horario.")
+            elif not fecha:
+                messagebox.showerror("Error", "Por favor, ingrese la fecha.") 
             else:
-                self.distinto_horario(id_Alumno, id_Curso, fecha, horario)
-                return         
-        except:     
-            pass
-
-        if not id_Curso:
-            messagebox.showerror("Error", "Por favor, seleccione un curso.")
-        elif not horario:
-            messagebox.showerror("Error", "Por favor, ingrese el horario.")
-        elif not fecha:
-            messagebox.showerror("Error", "Por favor, ingrese la fecha.") 
-        else:
-            self.opciones_edicion(no_Registro, id_Alumno, id_Curso, fecha, horario)      
+                self.opciones_edicion(no_Registro, id_Alumno, id_Curso, fecha, horario) 
+        except:
+            messagebox.showerror("Error", "Ese alumno aun no esta registrado") 
 
     def distinto_horario(self, id_Alumno, id_Curso, fecha, horario):
         self.cursor= self.connection.cursor()
@@ -1422,6 +1283,7 @@ class Inscripciones_2:
                messagebox.showinfo("Exito", "Datos actualizados correctamente")   
 
     def opciones_edicion(self, No_inscripción: int, student_id: str, course_code: str, inscripcion_date: str, horario: str):
+
         self.cursor= self.connection.cursor()
         self.cursor.execute("SELECT No_Inscripción FROM Inscritos WHERE Id_Alumno = ?",(student_id,))
         cantidad_Registro = len(self.cursor.fetchall())      
@@ -1478,10 +1340,14 @@ class Inscripciones_2:
         self.add_records_to_treeview()  
         self.habilitar()
         messagebox.showinfo("Exito", "Datos actualizados correctamente")
+
+    def habilitar(self):
+        self.__highlight_btns(self.btn_names)
+        self.mini.destroy()
         
     
     def ventana_varios_cursos(self,no_Registro):
-        self.__highlight_btns([])
+        self.__highlight_btns([])  
         self.mini = tk.Toplevel()
         self.mini.resizable(False,False)
         self.mini.title("Edición de datos")
@@ -1541,6 +1407,7 @@ class Inscripciones_2:
         return curso
         
     def handle_delete_records (self):
+        
         records_selected = self.__get_selected_records()
 
         if self.current_action == self.available_actions[3] and len(records_selected) > 0:
@@ -1567,13 +1434,16 @@ class Inscripciones_2:
         for record in records_selected:
             self.delete_record_by_id(record[0])
 
-        self.clear_Form()
         self.add_records_to_treeview()
+        self.cancel_Record()
         return
 
     def delete_records_by_action (self):
         self.__highlight_btns((self.btn_names[3], self.btn_names[4]))
         self.current_action = self.available_actions[3]
+        self.cancel_Record()
+        
+        
 
 if __name__ == "__main__":
     app = Inscripciones_2()
