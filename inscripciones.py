@@ -358,9 +358,7 @@ class Inscripciones_2:
         # UnSelect all records in treeView
         self.tView.selection_remove(self.tView.selection())
         self.clear_Form()
-        self.varios_horarios(7856019526884687)
         
-
         try:
             self.schedule_dialog.destroy()
         except:
@@ -370,6 +368,15 @@ class Inscripciones_2:
             self.mini.destroy()
         except:
             pass
+        try:
+            self.schedule_dialog.destroy()
+        except:
+            pass
+        try:
+            self.ventanaConsulta.destroy()
+        except:
+            pass
+
 
     def clear_Form (self):
         self.num_InscripcionVar.set(self.numero_de_registro())
@@ -1446,32 +1453,33 @@ class Inscripciones_2:
         
 
     def abrir_consulta(self):
-        ventanaConsulta = tk.Toplevel(self.win)
-        ventanaConsulta.title("Consulta")
-        ventanaConsulta.resizable(False, False)
-        ventanaConsulta.geometry("300x300")  
-        ventanaConsulta.update_idletasks()
-        width = ventanaConsulta.winfo_width()
-        height = ventanaConsulta.winfo_height()
+        self.__highlight_btns([])  
+        self.ventanaConsulta = tk.Toplevel(self.win)
+        self.ventanaConsulta.title("Consulta")
+        self.ventanaConsulta.resizable(False, False)
+        self.ventanaConsulta.geometry("300x300")  
+        self.ventanaConsulta.update_idletasks()
+        width = self.ventanaConsulta.winfo_width()
+        height = self.ventanaConsulta.winfo_height()
         x = (self.win.winfo_screenwidth() - width) // 2
         y = (self.win.winfo_screenheight() - height) // 2
-        ventanaConsulta.geometry(f"{width}x{height}+{x}+{y}")
+        self.ventanaConsulta.geometry(f"{width}x{height}+{x}+{y}")
 
-        self.frame_estudiante = tk.Frame(ventanaConsulta)
+        self.frame_estudiante = tk.Frame(self.ventanaConsulta)
         self.frame_estudiante.pack(padx=10, pady=10)
         label_estudiante = tk.Label(self.frame_estudiante, text="Seleccionar estudiante:")
         label_estudiante.pack(side="left")
         self.combo_estudiantes = ttk.Combobox(self.frame_estudiante, values=self.idcbox(), state="readonly")
         self.combo_estudiantes.pack(side="left")
 
-        self.frame_curso = tk.Frame(ventanaConsulta)
+        self.frame_curso = tk.Frame(self.ventanaConsulta)
         self.frame_curso.pack(padx=10, pady=10)
         label_curso = tk.Label(self.frame_curso, text="Seleccionar curso:")
         label_curso.pack(side="left")
         self.combo_cursos = ttk.Combobox(self.frame_curso, values=self.cursosbox(), state="readonly")
         self.combo_cursos.pack(side="left")
 
-        self.frame_treeview = tk.Frame(ventanaConsulta)
+        self.frame_treeview = tk.Frame(self.ventanaConsulta)
         self.frame_treeview.pack(padx=10, pady=10, fill="both", expand=True)
         self.treeview_consulta = ttk.Treeview(self.frame_treeview, columns=("columna1","columna2"), show="headings")
         self.treeview_consulta.heading("columna1", text="Datos de la Consulta")
