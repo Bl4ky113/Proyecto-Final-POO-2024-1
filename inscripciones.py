@@ -1485,11 +1485,8 @@ class Inscripciones_2:
 
         self.frame_treeview = tk.Frame(self.ventanaConsulta)
         self.frame_treeview.pack(padx=10, pady=10, fill="both", expand=True)
-        self.treeview_consulta = ttk.Treeview(self.frame_treeview, columns=("columna1", "columna2"), show="headings")
-        self.treeview_consulta.heading("columna1", text="")
-        self.treeview_consulta.heading("columna2", text="")
-        self.treeview_consulta.column("columna1", width=120)
-        self.treeview_consulta.column("columna2", width=150)
+        self.treeview_consulta = ttk.Treeview(self.frame_treeview, columns=("columna1"), show="headings")
+        self.treeview_consulta.heading("columna1", text="Datos de la Consulta")
         self.treeview_consulta.pack(side="left", fill="both", expand=True)
 
         self.combo_estudiantes.bind("<<ComboboxSelected>>", self.consultar_cursos_del_estudiante)
@@ -1497,7 +1494,9 @@ class Inscripciones_2:
 
     def consultar_cursos_del_estudiante(self, event):
         self.treeview_consulta.delete(*self.treeview_consulta.get_children())  
+        self.treeview_consulta["columns"] = ("columna1",)
         self.treeview_consulta.heading("columna1", text="Descripción del Curso")
+        self.treeview_consulta.column("columna1", width=300)
         self.cursor = self.connection.cursor()
         id_Alumno = self.combo_estudiantes.get()
         self.cursor.execute("SELECT Código_Curso FROM Inscritos WHERE Id_Alumno = ?", (id_Alumno,))
@@ -1513,7 +1512,11 @@ class Inscripciones_2:
 
     def consultar_estudiantes_del_curso(self, event):
         self.treeview_consulta.delete(*self.treeview_consulta.get_children()) 
-        self.treeview_consulta.heading("columna1", text="Nombres Completos")
+        self.treeview_consulta["columns"] = ("columna1", "columna2")
+        self.treeview_consulta.heading("columna1", text="Nombres")
+        self.treeview_consulta.heading("columna2", text="Apellidos")
+        self.treeview_consulta.column("columna1", width=150)
+        self.treeview_consulta.column("columna2", width=150)
         self.cursor = self.connection.cursor()
         id_Curso = self.combo_cursos.get()
         self.cursor.execute("SELECT Código_Curso FROM Cursos WHERE Descripción_Curso = ?", (id_Curso,))
@@ -1528,7 +1531,10 @@ class Inscripciones_2:
             alumnos = self.cursor.fetchone()
             self.treeview_consulta.insert("", "end", values=alumnos)
             self.cursor.close()
+<<<<<<< HEAD
 
+=======
+>>>>>>> 8a8447a57251e221cd0b834c0917128661d8c4d4
 
 if __name__ == "__main__":
     app = Inscripciones_2()
