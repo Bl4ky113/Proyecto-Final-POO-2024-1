@@ -940,7 +940,7 @@ class Inscripciones_2:
                 days_str += day["value"]
 
             if not days_str:
-                messagebox.showerror("Error", "Tiene que elegir almenos un día para el horario")
+                messagebox.showerror("Error", "Tiene que elegir al menos un día para el horario")
 
             return days_str
 
@@ -1450,6 +1450,9 @@ class Inscripciones_2:
         self.current_action = self.available_actions[3]
         self.cancel_Record()
         
+    def close_consulta(self):
+        self.__highlight_btns(self.btn_names)
+        self.ventanaConsulta.destroy()
         
 
     def abrir_consulta(self):
@@ -1464,6 +1467,7 @@ class Inscripciones_2:
         x = (self.win.winfo_screenwidth() - width) // 2
         y = (self.win.winfo_screenheight() - height) // 2
         self.ventanaConsulta.geometry(f"{width}x{height}+{x}+{y}")
+        self.ventanaConsulta.protocol("WM_DELETE_WINDOW", self.close_consulta)
 
         self.frame_estudiante = tk.Frame(self.ventanaConsulta)
         self.frame_estudiante.pack(padx=10, pady=10)
@@ -1518,7 +1522,6 @@ class Inscripciones_2:
             alumnos = self.cursor.fetchone()
             self.treeview_consulta.insert("", "end", values=alumnos)
             self.cursor.close()
-            print(alumnos)
 
 
 if __name__ == "__main__":
